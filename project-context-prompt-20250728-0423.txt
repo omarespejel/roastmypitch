@@ -1,0 +1,2669 @@
+# Project Context & Goal
+
+## Goal for the LLM
+You are an expert full-stack developer and software architect with deep expertise in Python/FastAPI for backends and React/Next.js/TypeScript for frontends. Your task is to analyze the complete context of this monorepo project, which is provided below. Please review the project structure, dependencies, backend source code, frontend source code, and configuration, and then provide specific, actionable advice for improvement. Focus on code quality, best practices, potential bugs, architectural design, maintainability, and the synergy between the frontend and backend.
+
+---
+
+## Directory Structure
+.
+├── README.md
+├── backend
+│   ├── chroma_db
+│   │   ├── 484c6b69-a1f9-47b3-b105-8215ed37cdf4
+│   │   │   ├── data_level0.bin
+│   │   │   ├── header.bin
+│   │   │   ├── length.bin
+│   │   │   └── link_lists.bin
+│   │   └── chroma.sqlite3
+│   ├── pyproject.toml
+│   ├── src
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   └── prompts.py
+│   └── uv.lock
+├── frontend
+│   ├── README.md
+│   ├── app
+│   │   ├── api
+│   │   │   └── auth
+│   │   │       └── [...nextauth]
+│   │   ├── components
+│   │   │   └── ui
+│   │   │       ├── button.tsx
+│   │   │       ├── card.tsx
+│   │   │       ├── dialog.tsx
+│   │   │       ├── input.tsx
+│   │   │       ├── textarea.tsx
+│   │   │       ├── toast.tsx
+│   │   │       └── toaster.tsx
+│   │   ├── globals.css
+│   │   ├── hooks
+│   │   │   └── use-toast.ts
+│   │   ├── layout.tsx
+│   │   ├── lib
+│   │   │   └── utils.ts
+│   │   ├── not-found.tsx
+│   │   ├── page.tsx
+│   │   └── providers.tsx
+│   ├── bun.lock
+│   ├── components
+│   │   ├── agent-selector.tsx
+│   │   ├── chat-interface.tsx
+│   │   ├── header.tsx
+│   │   ├── message-input.tsx
+│   │   ├── onboarding-guide.tsx
+│   │   └── progress-indicators.tsx
+│   ├── lib
+│   │   └── topic-analyzer.ts
+│   ├── next-env.d.ts
+│   ├── next.config.js
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── public
+│   ├── tailwind.config.ts
+│   ├── tsconfig.json
+│   └── types
+│       └── next-auth.d.ts
+├── generate-context.sh
+└── project-context-prompt-20250728-0423.txt
+
+18 directories, 43 files
+
+## FILE: README.md
+
+---
+
+## FILE: backend/pyproject.toml
+[project]
+name = "starknet_founders_bot_v2"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Omar Espejel", email = "espejelomar@gmail.com" },
+]
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn>=0.30.1",
+    "python-dotenv>=1.0.1",
+    "openai>=1.35.3",
+    "llama-index>=0.10.50",
+    "llama-index-llms-openai>=0.1.24",
+    "llama-index-vector-stores-chroma>=0.1.8",
+    "chromadb>=0.5.3",
+    "anthropic>=0.28.0",
+    "llama-index-embeddings-huggingface>=0.2.0",
+    "pypdf>=4.2.0",
+]
+readme = "README.md"
+requires-python = ">=3.8.1"
+
+---
+
+## FILE: frontend/package.json
+{
+  "name": "starknet-founders-bot-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "next-auth": "^4.24.5",
+    "@next-auth/prisma-adapter": "^1.0.7",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-toast": "^1.1.5",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.294.0",
+    "tailwind-merge": "^2.0.0",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.10",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.53.0",
+    "eslint-config-next": "14.0.0",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2"
+  }
+}
+---
+
+## FILE: frontend/tsconfig.json
+{
+  "compilerOptions": {
+    // Environment setup & latest features
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
+    "target": "ESNext",
+    "module": "esnext",
+    "moduleDetection": "force",
+    "jsx": "preserve",
+    "allowJs": true,
+    // Bundler mode
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    // Best practices
+    "strict": true,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    // Some stricter flags (disabled by default)
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "incremental": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+
+---
+
+## FILE: .gitignore
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+---
+
+## FILE: ./generate-context.sh
+#!/bin/bash
+#
+# Description:
+# This script generates a comprehensive prompt for an LLM by concatenating key source
+# files from both the Python backend and the Next.js frontend, along with project
+# configuration and directory structure.
+#
+# Usage:
+# ./generate-context.sh
+#
+
+# --- Configuration ---
+
+# Get current date for the output filename
+DATE=$(date +%Y%m%d-%H%M)
+
+# Output filename with a timestamp
+OUTPUT_FILE="project-context-prompt-${DATE}.txt"
+
+# --- Script Body ---
+
+# Clean up any previous output file to start fresh
+rm -f "$OUTPUT_FILE"
+
+echo "🚀 Starting LLM prompt generation for the monorepo project..."
+echo "------------------------------------------------------------"
+echo "Output will be saved to: $OUTPUT_FILE"
+echo ""
+
+# 1. Add a Preamble and Goal for the LLM
+echo "Adding LLM preamble and goal..."
+{
+  echo "# Project Context & Goal"
+  echo ""
+  echo "## Goal for the LLM"
+  echo "You are an expert full-stack developer and software architect with deep expertise in Python/FastAPI for backends and React/Next.js/TypeScript for frontends. Your task is to analyze the complete context of this monorepo project, which is provided below. Please review the project structure, dependencies, backend source code, frontend source code, and configuration, and then provide specific, actionable advice for improvement. Focus on code quality, best practices, potential bugs, architectural design, maintainability, and the synergy between the frontend and backend."
+  echo ""
+  echo "---"
+  echo ""
+} >> "$OUTPUT_FILE"
+
+# 2. Add the project's directory structure (cleaned up)
+echo "Adding cleaned directory structure..."
+echo "## Directory Structure" >> "$OUTPUT_FILE"
+if command -v tree &> /dev/null; then
+    echo "  -> Adding directory structure (tree -L 5)"
+    # Exclude common noise from the tree view for both backend and frontend
+    tree -L 5 -I "__pycache__|.venv|venv|.git|.pytest_cache|.ruff_cache|.mypy_cache|htmlcov|*.pyc|node_modules|.next" >> "$OUTPUT_FILE"
+else
+    echo "  -> WARNING: 'tree' command not found. Skipping directory structure."
+    echo "NOTE: 'tree' command was not found. Install it to include the directory structure." >> "$OUTPUT_FILE"
+fi
+echo "" >> "$OUTPUT_FILE"
+
+
+# 3. Add Core Project and Configuration Files
+echo "Adding core project and configuration files..."
+# Core files that provide project context from both backend and frontend
+CORE_FILES=(
+  "README.md"
+  "backend/pyproject.toml"
+  "frontend/package.json"
+  "frontend/tsconfig.json"
+  ".env.example"
+  ".gitignore"
+  "$0" # This script itself
+)
+
+for file in "${CORE_FILES[@]}"; do
+  if [ -f "$file" ]; then
+    echo "  -> Adding $file"
+    echo "## FILE: $file" >> "$OUTPUT_FILE"
+    cat "$file" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+  else
+    echo "  -> WARNING: $file not found. Skipping."
+  fi
+done
+
+# 4. Add all Python source files from the backend
+echo "Adding all Python source files from the 'backend'..."
+# Find all Python files, excluding common directories we don't want
+find "backend" -type f -name "*.py" \
+  -not -path "*/.venv/*" \
+  -not -path "*/venv/*" \
+  -not -path "*/__pycache__/*" \
+  -not -path "*/.pytest_cache/*" \
+  | while read -r py_file; do
+    echo "  -> Adding Python file: $py_file"
+    echo "## FILE: $py_file" >> "$OUTPUT_FILE"
+    cat "$py_file" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+  done
+
+# 5. Add all TypeScript/JavaScript source files from the frontend
+echo "Adding all TS/JS/TSX/JSX source files from the 'frontend'..."
+find "frontend" -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) \
+  -not -path "*/node_modules/*" \
+  -not -path "*/.next/*" \
+  | while read -r ts_file; do
+    echo "  -> Adding Frontend file: $ts_file"
+    echo "## FILE: $ts_file" >> "$OUTPUT_FILE"
+    cat "$ts_file" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+  done
+
+# 6. Add key frontend styling and component files
+echo "Adding other key frontend files (CSS, etc.)..."
+find "frontend" -type f \( -name "*.css" -o -name "*.scss" \) \
+  -not -path "*/node_modules/*" \
+  -not -path "*/.next/*" \
+  | while read -r css_file; do
+    echo "  -> Adding Frontend style file: $css_file"
+    echo "## FILE: $css_file" >> "$OUTPUT_FILE"
+    cat "$css_file" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+  done
+
+
+# --- Completion Summary ---
+
+echo ""
+echo "-------------------------------------"
+echo "✅ Prompt generation complete!"
+echo ""
+echo "This context file now includes:"
+echo "  ✓ A clear goal and preamble for the LLM"
+echo "  ✓ A cleaned project directory structure"
+echo "  ✓ Core project files (README.md, pyproject.toml, package.json, tsconfig.json)"
+echo "  ✓ Configuration files (.gitignore, .env.example)"
+echo "  ✓ This generation script itself"
+echo "  ✓ All Python source code from the 'backend' directory (*.py)"
+echo "  ✓ All TS/JS/TSX/JSX source code from the 'frontend' directory"
+echo "  ✓ All CSS/SCSS source code from the 'frontend' directory"
+echo ""
+echo "File size: \$(du -h "\$OUTPUT_FILE" | cut -f1)"
+echo "Total lines: \$(wc -l < "\$OUTPUT_FILE" | xargs)"
+echo ""
+echo "You can now use the content of '\$OUTPUT_FILE' as a context prompt for your LLM." 
+---
+
+## FILE: backend/src/__init__.py
+# This file makes the src directory a Python package 
+---
+
+## FILE: backend/src/prompts.py
+"""
+Persona prompts for different VC/PM personalities
+"""
+
+from enum import Enum
+
+class AgentType(Enum):
+    SHARK_VC = "Shark VC"
+    PRODUCT_PM = "Product PM"
+
+SHARK_VC_PROMPT = """
+You are a top-tier venture capitalist - a blend of partners from Sequoia, a16z, and Y Combinator. 
+You're brutally direct but constructive. Your goal: stress-test every assumption and expose weaknesses 
+to help founders build stronger businesses.
+
+CRITICAL WRITING STYLE RULES (Based on William Zinsser's "On Writing Well"):
+- Write like you speak to a technical founder. Short sentences. Clear points.
+- Cut every unnecessary word. If a sentence works without a word, delete it.
+- Use active voice. "You need to fix X" not "X needs to be fixed"
+- One idea per sentence. One topic per paragraph.
+- Avoid jargon unless necessary. When you use it, make it count.
+- No flowery language or AI-speak. No "I appreciate" or "It's great that"
+- Start with your main point. Don't bury the lede.
+- Use concrete examples, not abstract concepts.
+- Numbers and specifics over generalities.
+- Write like you're texting a smart friend, not drafting a formal letter.
+
+When analyzing pitches, focus on these areas:
+1. **Team** - What's your unique insight? Why you?
+2. **Market** - TAM size? Show me data.
+3. **Problem/Solution** - Which workflow breaks without you?
+4. **Traction** - Retention curves. Revenue. Hard numbers.
+5. **Unit Economics** - CAC, LTV, payback period.
+6. **Competition** - Why can't FAANG copy this?
+7. **Business Model** - Margins at scale?
+8. **Funding** - Milestones per dollar raised.
+9. **Exit** - Who buys you? At what multiple?
+10. **Risks** - What kills this company?
+
+Use web search to fact-check claims and find comparables. Be direct, challenging, but helpful.
+Never use more than 3-4 sentences per paragraph. Keep total responses under 200 words unless analyzing specific data.
+"""
+
+PRODUCT_PM_PROMPT = """
+You are Lenny Rachitsky, the legendary product management coach. You're known for practical, 
+evidence-based advice backed by real examples from successful companies.
+
+CRITICAL WRITING STYLE RULES (Based on William Zinsser's "On Writing Well"):
+- Write like a technical PM talking to another PM. Brief. Clear. Actionable.
+- Every sentence must earn its place. Cut the fluff.
+- Lead with the insight, then explain why.
+- One concept per paragraph. Make it scannable.
+- Use bullet points sparingly - only for true lists.
+- Concrete > abstract. "Stripe does X" beats "Companies often do X"
+- Skip the pleasantries. Jump straight to the meat.
+- Write like a Slack DM, not a Medium post.
+- If you can show it with data, don't tell it with words.
+- Maximum 3-4 sentences per paragraph. Total response under 200 words unless analyzing specifics.
+
+Focus areas:
+1. **Market** - Is it big and growing? Show segments.
+2. **User & JTBD** - Who exactly? What job?
+3. **Problem** - Hair on fire test. How painful?
+4. **Solution** - Why 10x better than alternatives?
+5. **Roadmap** - What's next? Why?
+6. **Metrics** - North Star? Leading indicators?
+7. **MVP → MLP** - Path from viable to lovable?
+8. **Narrative** - Can you write the press release?
+9. **Learning** - What experiments this week?
+
+Key frameworks:
+- Jobs-to-be-Done 
+- Product-market fit pyramid
+- Founder mode vs manager mode
+
+Remember: Good PM = relentless prioritization + rapid learning.
+Cite real examples (Airbnb, Stripe, Notion) when relevant. Be specific.
+"""
+
+def get_prompt(agent_type: AgentType) -> str:
+    """Get the appropriate prompt based on agent type"""
+    if agent_type == AgentType.SHARK_VC:
+        return SHARK_VC_PROMPT
+    elif agent_type == AgentType.PRODUCT_PM:
+        return PRODUCT_PM_PROMPT
+    else:
+        return SHARK_VC_PROMPT  # Default fallback 
+---
+
+## FILE: backend/src/main.py
+import os
+import shutil
+from dotenv import load_dotenv
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional
+import chromadb
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.core.storage.storage_context import StorageContext
+from llama_index.llms.openai_like import OpenAILike
+from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters 
+from llama_index.core.memory import ChatMemoryBuffer
+# --- 1. IMPORT THE SPECIFIC CHAT ENGINE CLASS ---
+from llama_index.core.chat_engine import ContextChatEngine
+from .prompts import AgentType, get_prompt
+
+
+# --- Load Environment and Configure Settings ---
+load_dotenv()
+
+Settings.llm = OpenAILike(
+    api_base="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    model="anthropic/claude-3.5-sonnet",
+    is_chat_model=True,
+    context_window=200000 
+)
+Settings.embed_model = "local:BAAI/bge-small-en-v1.5"
+
+def get_llm_for_agent(agent_type: AgentType):
+    """Get the appropriate LLM based on agent type"""
+    if agent_type == AgentType.SHARK_VC:
+        # Use Perplexity Sonar Pro for web-search enabled VC analysis
+        return OpenAILike(
+            api_base="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            model="perplexity/sonar-pro",
+            is_chat_model=True,
+            context_window=200000,
+            max_tokens=400  # Add this line
+        )
+    else:
+        # Use Claude for Product PM deep thinking
+        return OpenAILike(
+            api_base="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            model="anthropic/claude-3.5-sonnet",
+            is_chat_model=True,
+            context_window=200000,
+            max_tokens=400  # Add this line
+        )
+
+# --- Database and Vector Store Setup ---
+db = chromadb.PersistentClient(path="./chroma_db")
+chroma_collection = db.get_or_create_collection("starknet_copilot")
+vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+storage_context = StorageContext.from_defaults(vector_store=vector_store)
+index = VectorStoreIndex.from_vector_store(
+    vector_store, storage_context=storage_context
+)
+
+# --- In-Memory Session Storage ---
+chat_engines = {}
+
+
+
+# --- Application Setup ---
+app = FastAPI(
+    title="Starknet VC Co-pilot MVP",
+    description="An AI co-pilot for founders to get feedback on their pitch decks.",
+    version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- Data Models ---
+class ChatRequest(BaseModel):
+    founder_id: str
+    message: str
+    agent_type: Optional[str] = "Shark VC"  # Default to Shark VC
+
+class ChatResponse(BaseModel):
+    reply: str
+
+class UploadResponse(BaseModel):
+    message: str
+    filename: str
+
+# --- API Endpoints ---
+@app.post("/upload/{founder_id}", response_model=UploadResponse)
+async def upload_document(founder_id: str, file: UploadFile = File(...)):
+    if file.content_type != 'application/pdf':
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PDFs are accepted.")
+
+    temp_dir = f"./temp_{founder_id}/"
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file.filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    reader = SimpleDirectoryReader(
+        input_files=[file_path],
+        file_metadata=lambda filename: {"founder_id": founder_id}
+    )
+    documents = reader.load_data()
+    index.insert_nodes(documents)
+    shutil.rmtree(temp_dir)
+    return {"message": f"Document indexed successfully for founder {founder_id}", "filename": file.filename}
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def handle_chat(request: ChatRequest):
+    founder_id = request.founder_id
+    agent_type = AgentType(request.agent_type)
+    
+    # Create composite key for session storage
+    session_key = f"{founder_id}_{agent_type.value}"
+    
+    if session_key not in chat_engines:
+        retriever = index.as_retriever(
+            vector_store_query_mode="default",
+            filters=MetadataFilters(filters=[ExactMatchFilter(key="founder_id", value=founder_id)])
+        )
+        memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
+        
+        # Get the appropriate LLM and prompt
+        llm = get_llm_for_agent(agent_type)
+        prompt = get_prompt(agent_type)
+        
+        # Create chat engine with specific LLM
+        chat_engines[session_key] = ContextChatEngine.from_defaults(
+            retriever=retriever,
+            memory=memory,
+            system_prompt=prompt,
+            llm=llm  # Pass the specific LLM
+        )
+    
+    chat_engine = chat_engines[session_key]
+    response = await chat_engine.achat(request.message)
+    
+    return {"reply": str(response)}
+
+@app.post("/reset/{founder_id}")
+async def reset_chat(founder_id: str, agent_type: Optional[str] = None):
+    if agent_type:
+        session_key = f"{founder_id}_{agent_type}"
+        if session_key in chat_engines:
+            del chat_engines[session_key]
+            return {"message": f"Chat session for {agent_type} has been reset."}
+    else:
+        # Reset all sessions for this founder
+        keys_to_delete = [key for key in chat_engines.keys() if key.startswith(f"{founder_id}_")]
+        for key in keys_to_delete:
+            del chat_engines[key]
+        return {"message": f"All chat sessions for founder {founder_id} have been reset."}
+    
+    return {"message": f"No active session found."}
+
+# --- Health Check ---
+@app.get("/")
+def read_root():
+    return {"status": "Starknet VC Co-pilot API is running"}
+
+---
+
+## FILE: frontend/types/next-auth.d.ts
+import NextAuth from "next-auth"
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string
+      name?: string | null
+      email?: string | null
+      image?: string | null
+    }
+    accessToken?: string
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string
+    accessToken?: string
+  }
+} 
+---
+
+## FILE: frontend/app/components/ui/card.tsx
+import * as React from "react"
+import { cn } from "@/app/lib/utils"
+
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      className
+    )}
+    {...props}
+  />
+))
+Card.displayName = "Card"
+
+const CardHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    {...props}
+  />
+))
+CardHeader.displayName = "CardHeader"
+
+const CardTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn(
+      "text-2xl font-semibold leading-none tracking-tight",
+      className
+    )}
+    {...props}
+  />
+))
+CardTitle.displayName = "CardTitle"
+
+const CardDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+CardDescription.displayName = "CardDescription"
+
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+))
+CardContent.displayName = "CardContent"
+
+const CardFooter = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center p-6 pt-0", className)}
+    {...props}
+  />
+))
+CardFooter.displayName = "CardFooter"
+
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } 
+---
+
+## FILE: frontend/app/components/ui/toaster.tsx
+"use client"
+
+import {
+  Toast,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+} from "@/app/components/ui/toast"
+import { useToast } from "@/app/hooks/use-toast"
+
+export function Toaster() {
+  const { toasts } = useToast()
+
+  return (
+    <ToastProvider>
+      {toasts.map(function ({ id, title, description, action, ...props }) {
+        return (
+          <Toast key={id} {...props}>
+            <div className="grid gap-1">
+              {title && <ToastTitle>{title}</ToastTitle>}
+              {description && (
+                <ToastDescription>{description}</ToastDescription>
+              )}
+            </div>
+            {action}
+            <ToastClose />
+          </Toast>
+        )
+      })}
+      <ToastViewport />
+    </ToastProvider>
+  )
+} 
+---
+
+## FILE: frontend/app/components/ui/dialog.tsx
+"use client"
+
+import * as React from "react"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { X } from "lucide-react"
+import { cn } from "@/app/lib/utils"
+
+const Dialog = DialogPrimitive.Root
+
+const DialogTrigger = DialogPrimitive.Trigger
+
+const DialogPortal = DialogPrimitive.Portal
+
+const DialogClose = DialogPrimitive.Close
+
+const DialogOverlay = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className
+    )}
+    {...props}
+  />
+))
+DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
+
+const DialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+        <X className="h-4 w-4" />
+        <span className="sr-only">Close</span>
+      </DialogPrimitive.Close>
+    </DialogPrimitive.Content>
+  </DialogPortal>
+))
+DialogContent.displayName = DialogPrimitive.Content.displayName
+
+const DialogHeader = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "flex flex-col space-y-1.5 text-center sm:text-left",
+      className
+    )}
+    {...props}
+  />
+)
+DialogHeader.displayName = "DialogHeader"
+
+const DialogFooter = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      className
+    )}
+    {...props}
+  />
+)
+DialogFooter.displayName = "DialogFooter"
+
+const DialogTitle = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Title
+    ref={ref}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className
+    )}
+    {...props}
+  />
+))
+DialogTitle.displayName = DialogPrimitive.Title.displayName
+
+const DialogDescription = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+DialogDescription.displayName = DialogPrimitive.Description.displayName
+
+export {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogClose,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} 
+---
+
+## FILE: frontend/app/components/ui/button.tsx
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/app/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+        gradient: "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:scale-105",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = "Button"
+
+export { Button, buttonVariants } 
+---
+
+## FILE: frontend/app/components/ui/toast.tsx
+import * as React from "react"
+import * as ToastPrimitives from "@radix-ui/react-toast"
+import { cva, type VariantProps } from "class-variance-authority"
+import { X } from "lucide-react"
+import { cn } from "@/app/lib/utils"
+
+const ToastProvider = ToastPrimitives.Provider
+
+const ToastViewport = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Viewport>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Viewport
+    ref={ref}
+    className={cn(
+      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
+      className
+    )}
+    {...props}
+  />
+))
+ToastViewport.displayName = ToastPrimitives.Viewport.displayName
+
+const toastVariants = cva(
+  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+  {
+    variants: {
+      variant: {
+        default: "border bg-background text-foreground",
+        destructive:
+          "destructive group border-destructive bg-destructive text-destructive-foreground",
+        success: "border-green-600 bg-green-600 text-white",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+const Toast = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Root>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
+    VariantProps<typeof toastVariants>
+>(({ className, variant, ...props }, ref) => {
+  return (
+    <ToastPrimitives.Root
+      ref={ref}
+      className={cn(toastVariants({ variant }), className)}
+      {...props}
+    />
+  )
+})
+Toast.displayName = ToastPrimitives.Root.displayName
+
+const ToastAction = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Action>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Action
+    ref={ref}
+    className={cn(
+      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
+      className
+    )}
+    {...props}
+  />
+))
+ToastAction.displayName = ToastPrimitives.Action.displayName
+
+const ToastClose = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Close>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Close
+    ref={ref}
+    className={cn(
+      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      className
+    )}
+    toast-close=""
+    {...props}
+  >
+    <X className="h-4 w-4" />
+  </ToastPrimitives.Close>
+))
+ToastClose.displayName = ToastPrimitives.Close.displayName
+
+const ToastTitle = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Title>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Title
+    ref={ref}
+    className={cn("text-sm font-semibold", className)}
+    {...props}
+  />
+))
+ToastTitle.displayName = ToastPrimitives.Title.displayName
+
+const ToastDescription = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Description>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Description
+    ref={ref}
+    className={cn("text-sm opacity-90", className)}
+    {...props}
+  />
+))
+ToastDescription.displayName = ToastPrimitives.Description.displayName
+
+type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
+
+type ToastActionElement = React.ReactElement<typeof ToastAction>
+
+export {
+  type ToastProps,
+  type ToastActionElement,
+  ToastProvider,
+  ToastViewport,
+  Toast,
+  ToastTitle,
+  ToastDescription,
+  ToastClose,
+  ToastAction,
+} 
+---
+
+## FILE: frontend/app/components/ui/textarea.tsx
+import * as React from "react"
+import { cn } from "@/app/lib/utils"
+
+export interface TextareaProps
+  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <textarea
+        className={cn(
+          "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none",
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Textarea.displayName = "Textarea"
+
+export { Textarea } 
+---
+
+## FILE: frontend/app/components/ui/input.tsx
+import * as React from "react"
+import { cn } from "@/app/lib/utils"
+
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        className={cn(
+          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Input.displayName = "Input"
+
+export { Input } 
+---
+
+## FILE: frontend/app/hooks/use-toast.ts
+import * as React from "react"
+import type { ToastActionElement, ToastProps } from "@/app/components/ui/toast"
+
+const TOAST_LIMIT = 1
+const TOAST_REMOVE_DELAY = 1000000
+
+type ToasterToast = ToastProps & {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: ToastActionElement
+}
+
+const actionTypes = {
+  ADD_TOAST: "ADD_TOAST",
+  UPDATE_TOAST: "UPDATE_TOAST",
+  DISMISS_TOAST: "DISMISS_TOAST",
+  REMOVE_TOAST: "REMOVE_TOAST",
+} as const
+
+let count = 0
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER
+  return count.toString()
+}
+
+type ActionType = typeof actionTypes
+
+type Action =
+  | {
+      type: ActionType["ADD_TOAST"]
+      toast: ToasterToast
+    }
+  | {
+      type: ActionType["UPDATE_TOAST"]
+      toast: Partial<ToasterToast>
+    }
+  | {
+      type: ActionType["DISMISS_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+  | {
+      type: ActionType["REMOVE_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+
+interface State {
+  toasts: ToasterToast[]
+}
+
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
+
+const addToRemoveQueue = (toastId: string) => {
+  if (toastTimeouts.has(toastId)) {
+    return
+  }
+
+  const timeout = setTimeout(() => {
+    toastTimeouts.delete(toastId)
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId: toastId,
+    })
+  }, TOAST_REMOVE_DELAY)
+
+  toastTimeouts.set(toastId, timeout)
+}
+
+export const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "ADD_TOAST":
+      return {
+        ...state,
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+      }
+
+    case "UPDATE_TOAST":
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
+      }
+
+    case "DISMISS_TOAST": {
+      const { toastId } = action
+
+      if (toastId) {
+        addToRemoveQueue(toastId)
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id)
+        })
+      }
+
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+                ...t,
+                open: false,
+              }
+            : t
+        ),
+      }
+    }
+    case "REMOVE_TOAST":
+      if (action.toastId === undefined) {
+        return {
+          ...state,
+          toasts: [],
+        }
+      }
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+      }
+  }
+}
+
+const listeners: Array<(state: State) => void> = []
+
+let memoryState: State = { toasts: [] }
+
+function dispatch(action: Action) {
+  memoryState = reducer(memoryState, action)
+  listeners.forEach((listener) => {
+    listener(memoryState)
+  })
+}
+
+type Toast = Omit<ToasterToast, "id">
+
+function toast({ ...props }: Toast) {
+  const id = genId()
+
+  const update = (props: ToasterToast) =>
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: { ...props, id },
+    })
+  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+
+  dispatch({
+    type: "ADD_TOAST",
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss()
+      },
+    },
+  })
+
+  return {
+    id: id,
+    dismiss,
+    update,
+  }
+}
+
+function useToast() {
+  const [state, setState] = React.useState<State>(memoryState)
+
+  React.useEffect(() => {
+    listeners.push(setState)
+    return () => {
+      const index = listeners.indexOf(setState)
+      if (index > -1) {
+        listeners.splice(index, 1)
+      }
+    }
+  }, [state])
+
+  return {
+    ...state,
+    toast,
+    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+  }
+}
+
+export { useToast, toast } 
+---
+
+## FILE: frontend/app/layout.tsx
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import Providers from "./providers"
+
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  title: "Starknet Founders Bot",
+  description: "AI-powered feedback for your startup pitch",
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className="dark">
+      <body className={inter.className}>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  )
+} 
+---
+
+## FILE: frontend/app/lib/utils.ts
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+} 
+---
+
+## FILE: frontend/app/api/auth/[...nextauth]/route.ts
+import NextAuth from "next-auth"
+import GithubProvider from "next-auth/providers/github"
+
+const handler = NextAuth({
+  providers: [
+    GithubProvider({
+      clientId: process.env.GITHUB_ID!,
+      clientSecret: process.env.GITHUB_SECRET!,
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.access_token
+      }
+      return token
+    },
+    async session({ session, token }) {
+      session.user.id = token.sub!
+      session.accessToken = token.accessToken as string
+      return session
+    },
+  },
+  pages: {
+    signIn: '/',
+  },
+})
+
+export { handler as GET, handler as POST } 
+---
+
+## FILE: frontend/app/page.tsx
+"use client"
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import Header from '@/components/header'
+import AgentSelector from '@/components/agent-selector'
+import ChatInterface from '@/components/chat-interface'
+import MessageInput from '@/components/message-input'
+import ProgressIndicators from '@/components/progress-indicators'
+import OnboardingGuide from '@/components/onboarding-guide'
+import { Card } from '@/app/components/ui/card'
+import { useToast } from '@/app/hooks/use-toast'
+import { Button } from '@/app/components/ui/button'
+import { Github } from 'lucide-react'
+import { signIn } from 'next-auth/react'
+import { analyzeCompletedTopics } from '@/lib/topic-analyzer'
+
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export default function Home() {
+  const { data: session, status } = useSession()
+  const { toast } = useToast()
+  const [selectedAgent, setSelectedAgent] = useState('Product PM')
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [completedTopics, setCompletedTopics] = useState<string[]>([])
+  const [showOnboarding, setShowOnboarding] = useState(true)
+
+  const founderId = session?.user?.email || "anonymous"
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+  // Analyze messages for completed topics with toast notifications
+  useEffect(() => {
+    if (messages.length > 0) {
+      const newTopics = analyzeCompletedTopics(messages, selectedAgent)
+      
+      // Check if any new topics were completed
+      const newlyCompleted = newTopics.filter(topic => !completedTopics.includes(topic))
+      
+      if (newlyCompleted.length > 0 && completedTopics.length > 0) {
+        // Show a toast for newly completed topics
+        const topicLabels: { [key: string]: string } = {
+          team: 'Team & Founders',
+          market: 'Market Analysis',
+          problem: 'Problem/Solution Fit',
+          traction: 'Traction Metrics',
+          economics: 'Unit Economics',
+          competition: 'Competitive Analysis',
+          model: 'Business Model',
+          funding: 'Use of Funds',
+          exit: 'Exit Strategy',
+          risks: 'Risk Assessment',
+          persona: 'User Persona',
+          solution: 'Solution Design',
+          roadmap: 'Product Roadmap',
+          metrics: 'Success Metrics',
+          mvp: 'MVP Strategy',
+          narrative: 'Product Story',
+          experiments: 'Learning Velocity'
+        }
+        
+        newlyCompleted.forEach(topic => {
+          toast({
+            title: "✅ Topic Analyzed",
+            description: `${topicLabels[topic] || topic} has been covered!`,
+            duration: 3000,
+          })
+        })
+      }
+      
+      setCompletedTopics(newTopics)
+    }
+  }, [messages, selectedAgent, completedTopics, toast])
+
+  const handleAgentSelect = (agent: string) => {
+    if (agent !== selectedAgent && messages.length > 0) {
+      // Optionally clear messages when switching agents
+      const shouldSwitch = confirm('Switching agents will start a new conversation. Continue?')
+      if (shouldSwitch) {
+        setMessages([])
+        setCompletedTopics([]) // Reset progress
+        setSelectedAgent(agent)
+      }
+    } else {
+      setSelectedAgent(agent)
+    }
+  }
+
+  // Get next suggested topic
+  const getNextSuggestedTopic = () => {
+    const rubric = selectedAgent === 'Product PM' 
+      ? ['user personas', 'market opportunity', 'product roadmap', 'success metrics', 'competitive landscape']
+      : ['your founding team', 'market size (TAM)', 'unit economics', 'competitive advantage', 'use of funds']
+    
+    const allTopics = selectedAgent === 'Product PM'
+      ? ['persona', 'market', 'roadmap', 'metrics', 'competition']
+      : ['team', 'market', 'economics', 'competition', 'funding']
+    
+    // Find first uncovered topic
+    const uncoveredIndex = allTopics.findIndex(topic => !completedTopics.includes(topic))
+    
+    return uncoveredIndex >= 0 ? rubric[uncoveredIndex] : undefined
+  }
+
+  const sendMessage = async (message: string) => {
+    setMessages(prev => [...prev, { role: 'user', content: message }])
+    setIsLoading(true)
+    
+    try {
+      const response = await fetch(`${apiUrl}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          founder_id: founderId, 
+          message,
+          agent_type: selectedAgent  // Add the selected agent type
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to send message')
+      
+      const data = await response.json() as { reply: string }
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+    } catch (error) {
+      console.error('Error sending message:', error)
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const uploadFile = async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    try {
+      const response = await fetch(`${apiUrl}/upload/${founderId}`, {
+        method: 'POST',
+        body: formData,
+      })
+      
+      if (!response.ok) throw new Error('Upload failed')
+      
+      const data = await response.json() as { filename: string }
+      toast({
+        title: "Success",
+        description: `${data.filename} uploaded successfully!`,
+        variant: "success" as any,
+      })
+      
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: selectedAgent === 'Product PM'
+          ? `I've received your document: ${data.filename}. Let me analyze it through a product lens. What specific product questions should I focus on?`
+          : `I've received your pitch deck: ${data.filename}. Let me review it like a VC would. What specific aspects would you like me to focus on?`
+      }])
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      toast({
+        title: "Error",
+        description: "Failed to upload document. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full p-8 text-center animate-fade-up">
+            <div className="mb-6">
+              <div className="p-4 rounded-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 w-fit mx-auto mb-4">
+                <Github className="h-12 w-12 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Welcome to Starknet Founders Bot</h2>
+              <p className="text-muted-foreground">
+                Sign in with GitHub to get brutally honest feedback on your startup pitch
+              </p>
+            </div>
+            <Button 
+              onClick={() => signIn("github")} 
+              variant="gradient" 
+              size="lg"
+              className="w-full gap-2"
+            >
+              <Github className="h-5 w-5" />
+              Sign in with GitHub
+            </Button>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      
+      {showOnboarding && messages.length === 0 && (
+        <OnboardingGuide onClose={() => setShowOnboarding(false)} />
+      )}
+      
+      <main className="flex-1 flex flex-col max-w-6xl mx-auto w-full">
+        <AgentSelector 
+          selectedAgent={selectedAgent} 
+          onSelect={handleAgentSelect}  // Use the new handler
+        />
+        
+        {/* Desktop layout with progress sidebar */}
+        <div className="flex-1 flex gap-4 mx-4 mb-4">
+          {/* Chat area */}
+          <Card className="flex-1 flex flex-col overflow-hidden">
+            <ChatInterface 
+              messages={messages} 
+              isLoading={isLoading}
+              selectedAgent={selectedAgent}  // Add this prop
+            />
+          </Card>
+          
+          {/* Progress sidebar - visible on desktop */}
+          {messages.length > 0 && (
+            <div className="hidden lg:block w-80">
+              <ProgressIndicators 
+                selectedAgent={selectedAgent}
+                completedItems={completedTopics}
+                className="sticky top-4"
+              />
+            </div>
+          )}
+        </div>
+        
+        {/* Mobile progress - shows as collapsible */}
+        {messages.length > 0 && (
+          <div className="lg:hidden mx-4 mb-4">
+            <details className="group">
+              <summary className="cursor-pointer list-none">
+                <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                  <span className="text-sm font-medium">Analysis Progress</span>
+                  <span className="text-xs text-muted-foreground">
+                    {completedTopics.length}/10 • Tap to expand
+                  </span>
+                </div>
+              </summary>
+              <div className="mt-2">
+                <ProgressIndicators 
+                  selectedAgent={selectedAgent}
+                  completedItems={completedTopics}
+                />
+              </div>
+            </details>
+          </div>
+        )}
+      </main>
+      
+      <MessageInput
+        onSendMessage={sendMessage}
+        onUploadFile={uploadFile}
+        isLoading={isLoading}
+        suggestedTopic={messages.length > 2 ? getNextSuggestedTopic() : undefined}
+      />
+    </div>
+  )
+} 
+---
+
+## FILE: frontend/app/not-found.tsx
+export default function NotFound() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-4">404</h1>
+        <p className="text-muted-foreground">Page not found</p>
+      </div>
+    </div>
+  )
+} 
+---
+
+## FILE: frontend/app/providers.tsx
+"use client"
+
+import { SessionProvider } from "next-auth/react"
+import { Toaster } from "@/app/components/ui/toaster"
+import type { ReactNode } from "react"
+
+export default function Providers({ children }: { children: ReactNode }) {
+  return (
+    <SessionProvider>
+      {children}
+      <Toaster />
+    </SessionProvider>
+  )
+} 
+---
+
+## FILE: frontend/next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  images: {
+    domains: ['avatars.githubusercontent.com'],
+  },
+}
+
+module.exports = nextConfig
+
+---
+
+## FILE: frontend/next-env.d.ts
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/basic-features/typescript for more information.
+
+---
+
+## FILE: frontend/tailwind.config.ts
+import type { Config } from 'tailwindcss'
+
+const config: Config = {
+  darkMode: ["class"],
+  content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "zoom-in-50": {
+          "0%": { opacity: "0", transform: "scale(0.5)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.5s ease-out",
+        "fade-up": "fade-up 0.5s ease-out",
+        "in": "fade-in 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+}
+
+export default config
+
+---
+
+## FILE: frontend/components/agent-selector.tsx
+"use client"
+
+import { Button } from "@/app/components/ui/button"
+import { cn } from "@/app/lib/utils"
+import { Briefcase, Brain, Coffee, Lock } from "lucide-react"
+
+const AGENTS = [
+  { 
+    name: 'Product PM', 
+    available: true, 
+    icon: Brain,
+    description: 'Start here - Product strategy insights',
+    gradient: 'from-blue-600 to-cyan-600',
+    basedOn: 'Based on Lenny Rachitsky'
+  },
+  { 
+    name: 'Shark VC', 
+    available: true, 
+    icon: Briefcase,
+    description: 'Next step - Brutal investor feedback',
+    gradient: 'from-red-600 to-orange-600',
+    basedOn: 'Based on top VCs from Sequoia, a16z, YC'
+  }
+]
+
+interface AgentSelectorProps {
+  selectedAgent: string
+  onSelect: (agent: string) => void
+}
+
+export default function AgentSelector({ selectedAgent, onSelect }: AgentSelectorProps) {
+  return (
+    <div className="w-full p-6">
+      <h2 className="text-center text-sm font-medium text-muted-foreground mb-4">
+        Choose your VC personality
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+        {AGENTS.map((agent) => {
+          const Icon = agent.icon
+          const isSelected = selectedAgent === agent.name
+          
+          return (
+            <Button
+              key={agent.name}
+              onClick={() => agent.available && onSelect(agent.name)}
+              variant="outline"
+              className={cn(
+                "relative h-auto p-6 flex flex-col items-center gap-3 transition-all",
+                isSelected && "border-primary shadow-lg shadow-primary/20",
+                !agent.available && "opacity-50 cursor-not-allowed"
+              )}
+              disabled={!agent.available}
+            >
+              {!agent.available && (
+                <Lock className="absolute top-2 right-2 h-4 w-4 text-muted-foreground" />
+              )}
+              <div className={cn(
+                "p-3 rounded-lg",
+                isSelected 
+                  ? `bg-gradient-to-br ${agent.gradient}` 
+                  : "bg-secondary"
+              )}>
+                <Icon className={cn(
+                  "h-6 w-6",
+                  isSelected ? "text-white" : "text-muted-foreground"
+                )} />
+              </div>
+              <div className="text-center">
+                <h3 className="font-semibold">{agent.name}</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {agent.available ? agent.description : "Coming soon"}
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-1 italic">
+                  {agent.basedOn}
+                </p>
+              </div>
+              {agent.name === 'Product PM' && (
+                <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                  Start here
+                </div>
+              )}
+            </Button>
+          )
+        })}
+      </div>
+    </div>
+  )
+} 
+---
+
+## FILE: frontend/components/chat-interface.tsx
+"use client"
+
+import { useEffect, useRef } from "react"
+import { cn } from "@/app/lib/utils"
+import { Bot, User } from "lucide-react"
+
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+interface ChatInterfaceProps {
+  messages: Message[]
+  isLoading: boolean
+  selectedAgent?: string  // Add this
+}
+
+export default function ChatInterface({ messages, isLoading, selectedAgent = 'Shark VC' }: ChatInterfaceProps) {
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {messages.length === 0 && (
+        <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
+          <div className="p-4 rounded-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 mb-4">
+            <Bot className="h-12 w-12 text-primary" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">
+            {selectedAgent === 'Product PM' ? 'Ready to refine your product?' : 'Ready for investor feedback?'}
+          </h3>
+          <p className="text-muted-foreground max-w-md">
+            {selectedAgent === 'Product PM' 
+              ? "Upload your PRD or describe your product. I'll help you refine your product strategy with frameworks from top tech companies."
+              : "Upload your pitch deck. I'll analyze it like a top-tier VC would, focusing on what matters for fundraising."
+            }
+          </p>
+        </div>
+      )}
+      
+      {messages.map((message, index) => (
+        <div
+          key={index}
+          className={cn(
+            "flex gap-3 message-enter",
+            message.role === 'user' ? 'justify-end' : 'justify-start'
+          )}
+        >
+          {message.role === 'assistant' && (
+            <div className="flex-shrink-0">
+              <div className="p-2 rounded-lg bg-secondary">
+                <Bot className="h-5 w-5" />
+              </div>
+            </div>
+          )}
+          
+          <div
+            className={cn(
+              "max-w-[70%] rounded-lg px-4 py-3",
+              message.role === 'user' 
+                ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white' 
+                : 'bg-secondary'
+            )}
+          >
+            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          </div>
+          
+          {message.role === 'user' && (
+            <div className="flex-shrink-0">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
+                <User className="h-5 w-5 text-white" />
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+      
+      {isLoading && (
+        <div className="flex gap-3 justify-start">
+          <div className="flex-shrink-0">
+            <div className="p-2 rounded-lg bg-secondary">
+              <Bot className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="bg-secondary rounded-lg px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              {selectedAgent === 'Shark VC' && (
+                <span className="text-xs text-muted-foreground">Researching market data...</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div ref={messagesEndRef} />
+    </div>
+  )
+} 
+---
+
+## FILE: frontend/components/onboarding-guide.tsx
+"use client"
+
+import { Card, CardContent } from "@/app/components/ui/card"
+import { Button } from "@/app/components/ui/button"
+import { X, FileText, MessageSquare, CheckCircle, AlertCircle } from "lucide-react"
+import { useState } from "react"
+
+interface OnboardingGuideProps {
+  onClose: () => void
+}
+
+export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
+  const [isMinimized, setIsMinimized] = useState(false)
+
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-20 right-4 z-40">
+        <Button 
+          onClick={() => setIsMinimized(false)}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+        >
+          <AlertCircle className="h-4 w-4" />
+          Show Guide
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed inset-x-0 top-20 mx-auto max-w-2xl p-4 z-40">
+      <Card className="relative border-primary/20 shadow-lg animate-fade-up">
+        <div className="absolute right-2 top-2 flex gap-1">
+          <Button
+            onClick={() => setIsMinimized(true)}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+          >
+            <span className="text-xs">−</span>
+          </Button>
+          <Button
+            onClick={onClose}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <CardContent className="pt-6 pb-4">
+          <h3 className="text-lg font-semibold mb-4">Welcome to Starknet Founders Bot</h3>
+          
+          <div className="space-y-4">
+            <div className="bg-primary/5 rounded-lg p-4">
+              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                <span className="text-lg">👋</span> Getting Started
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                This tool helps Starknet ecosystem founders refine their ideas through structured feedback.
+                We've carefully curated two advisor personalities to guide you through product development and fundraising.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Recommended Process:</h4>
+              
+              <div className="flex gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600/10 flex items-center justify-center text-sm font-medium">
+                  1
+                </div>
+                <div className="flex-1">
+                  <h5 className="font-medium text-sm">Start with Product Strategy</h5>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload your PRD or describe your product. Our Product advisor (based on Lenny Rachitsky) 
+                    will help you nail product-market fit, user personas, and your roadmap.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-600/10 flex items-center justify-center text-sm font-medium">
+                  2
+                </div>
+                <div className="flex-1">
+                  <h5 className="font-medium text-sm">Then Face the VCs</h5>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload your pitch deck. Our VC advisor (based on top partners from Sequoia, a16z, YC) 
+                    will stress-test your assumptions and prepare you for real investor meetings.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-secondary/50 rounded-lg p-3">
+              <h4 className="font-medium text-sm mb-1 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Important: Upload First
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                For best results, always upload your PRD or pitch deck first. 
+                The advisors will analyze your document and identify gaps to fill.
+              </p>
+            </div>
+
+            <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+              <p>A Starknet Foundation program to support ecosystem startups</p>
+              <p>Issues or feedback? Contact <span className="text-primary font-medium">@espejelomar</span> on Telegram</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+} 
+---
+
+## FILE: frontend/components/header.tsx
+"use client"
+
+import { signIn, signOut, useSession } from "next-auth/react"
+import { Button } from "@/app/components/ui/button"
+import { Github, LogOut, Sparkles } from "lucide-react"
+import Image from "next/image"
+
+export default function Header() {
+  const { data: session } = useSession()
+
+  return (
+    <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Starknet Founders Bot
+                </h1>
+                <p className="text-xs text-muted-foreground">A Starknet Foundation program</p>
+              </div>
+            </div>
+            <div className="hidden md:block text-xs text-muted-foreground/70 border-l pl-4 ml-2">
+              <p>Supporting ecosystem startups</p>
+              <p>Issues? Contact <span className="text-primary">@espejelomar</span> on Telegram</p>
+            </div>
+          </div>
+          
+          {session?.user ? (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <Image
+                  src={session.user.image || ""}
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="rounded-full border-2 border-primary/20"
+                />
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium">{session.user.name}</p>
+                  <p className="text-xs text-muted-foreground">{session.user.email}</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => signOut()}
+                className="gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={() => signIn("github")}
+              variant="gradient"
+              className="gap-2"
+            >
+              <Github className="h-4 w-4" />
+              Sign in with GitHub
+            </Button>
+          )}
+        </div>
+      </div>
+    </header>
+  )
+} 
+---
+
+## FILE: frontend/components/message-input.tsx
+"use client"
+
+import { useState, useRef } from 'react'
+import { Button } from "@/app/components/ui/button"
+import { Textarea } from "@/app/components/ui/textarea"
+import { Paperclip, Send } from "lucide-react"
+import { cn } from "@/app/lib/utils"
+
+interface MessageInputProps {
+  onSendMessage: (message: string) => void
+  onUploadFile: (file: File) => void
+  isLoading: boolean
+  suggestedTopic?: string  // Add this
+}
+
+export default function MessageInput({ onSendMessage, onUploadFile, isLoading, suggestedTopic }: MessageInputProps) {
+  const [message, setMessage] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!message.trim() || isLoading) return
+    onSendMessage(message)
+    setMessage('')
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type === 'application/pdf') {
+      onUploadFile(file)
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend(e)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSend} className="border-t border-border/50 bg-background/80 backdrop-blur-sm p-4">
+      <div className="container mx-auto max-w-4xl">
+        {/* Add suggested topic hint */}
+        {suggestedTopic && (
+          <div className="mb-2 text-xs text-muted-foreground flex items-center gap-2">
+            <span>💡 Try asking about:</span>
+            <button
+              type="button"
+              onClick={() => setMessage(`Tell me about ${suggestedTopic}`)}
+              className="text-primary hover:underline"
+            >
+              {suggestedTopic}
+            </button>
+          </div>
+        )}
+        
+        <div className="relative">
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Describe your startup idea or ask for feedback..."
+            className="min-h-[80px] pr-24 resize-none"
+            disabled={isLoading}
+          />
+          <div className="absolute bottom-2 right-2 flex gap-2">
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              className="h-8 w-8"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Button
+              type="submit"
+              size="icon"
+              variant={message.trim() ? "gradient" : "ghost"}
+              disabled={isLoading || !message.trim()}
+              className={cn(
+                "h-8 w-8",
+                message.trim() && "hover:scale-110"
+              )}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+          <p>Press Enter to send, Shift+Enter for new line</p>
+          <p>PDF files only (max 10MB)</p>
+        </div>
+      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf"
+        className="hidden"
+        onChange={handleFileChange}
+        disabled={isLoading}
+      />
+    </form>
+  )
+} 
+---
+
+## FILE: frontend/components/progress-indicators.tsx
+"use client"
+
+import { Check, Circle } from "lucide-react"
+import { cn } from "@/app/lib/utils"
+
+interface RubricItem {
+  id: string
+  label: string
+  completed: boolean
+}
+
+const SHARK_VC_RUBRIC: RubricItem[] = [
+  { id: 'team', label: 'Team & Founders', completed: false },
+  { id: 'market', label: 'Market Size (TAM)', completed: false },
+  { id: 'problem', label: 'Problem/Solution Fit', completed: false },
+  { id: 'traction', label: 'Traction & Metrics', completed: false },
+  { id: 'economics', label: 'Unit Economics', completed: false },
+  { id: 'competition', label: 'Competitive Advantage', completed: false },
+  { id: 'model', label: 'Business Model', completed: false },
+  { id: 'funding', label: 'Use of Funds', completed: false },
+  { id: 'exit', label: 'Exit Strategy', completed: false },
+  { id: 'risks', label: 'Risks & Mitigation', completed: false },
+]
+
+const PRODUCT_PM_RUBRIC: RubricItem[] = [
+  { id: 'market', label: 'Market Clarity', completed: false },
+  { id: 'persona', label: 'User Persona & JTBD', completed: false },
+  { id: 'problem', label: 'Problem Statement', completed: false },
+  { id: 'solution', label: 'Solution Uniqueness', completed: false },
+  { id: 'roadmap', label: 'Roadmap & Prioritization', completed: false },
+  { id: 'metrics', label: 'Success Metrics', completed: false },
+  { id: 'mvp', label: 'MVP → MLP Journey', completed: false },
+  { id: 'narrative', label: 'Product Narrative', completed: false },
+  { id: 'experiments', label: 'Learning Velocity', completed: false },
+]
+
+interface ProgressIndicatorsProps {
+  selectedAgent: string
+  completedItems: string[]
+  className?: string
+}
+
+export default function ProgressIndicators({ selectedAgent, completedItems, className }: ProgressIndicatorsProps) {
+  const rubric = selectedAgent === 'Product PM' ? PRODUCT_PM_RUBRIC : SHARK_VC_RUBRIC
+  const completedCount = completedItems.length
+  const totalCount = rubric.length
+  const percentage = (completedCount / totalCount) * 100
+
+  return (
+    <div className={cn("bg-secondary/50 rounded-lg p-4", className)}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium">Analysis Progress</h3>
+        <span className="text-xs text-muted-foreground">
+          {completedCount}/{totalCount} completed
+        </span>
+      </div>
+      
+      {/* Progress bar */}
+      <div className="w-full bg-secondary rounded-full h-2 mb-4 overflow-hidden">
+        <div 
+          className="h-full bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-500 ease-out"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+
+      {/* Rubric items */}
+      <div className="grid grid-cols-1 gap-2">
+        {rubric.map((item) => {
+          const isCompleted = completedItems.includes(item.id)
+          return (
+            <div 
+              key={item.id} 
+              className={cn(
+                "flex items-center gap-2 text-xs transition-all duration-200",
+                isCompleted ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              <div className="relative">
+                {isCompleted ? (
+                  <div className="animate-in zoom-in-50 duration-200">
+                    <Check className="h-4 w-4 text-green-500" />
+                  </div>
+                ) : (
+                  <Circle className="h-4 w-4" />
+                )}
+              </div>
+              <span className={cn(
+                "transition-all duration-200",
+                isCompleted && "font-medium"
+              )}>
+                {item.label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Completion celebration */}
+      {completedCount === totalCount && (
+        <div className="mt-4 p-3 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-lg border border-primary/20">
+          <p className="text-xs text-center font-medium">
+            🎉 Complete analysis achieved! Ready for the next round.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+} 
+---
+
+## FILE: frontend/lib/topic-analyzer.ts
+/**
+ * Analyzes chat messages to determine which rubric items have been covered
+ */
+
+interface TopicKeywords {
+  [key: string]: string[]
+}
+
+const SHARK_VC_KEYWORDS: TopicKeywords = {
+  team: ['founder', 'team', 'experience', 'background', 'expertise', 'earned secret', 'why you'],
+  market: ['TAM', 'market size', 'total addressable', 'billion', 'market opportunity', 'growth rate'],
+  problem: ['problem', 'pain point', 'solution fit', 'customer need', 'workflow', 'broken'],
+  traction: ['users', 'revenue', 'growth', 'retention', 'churn', 'MRR', 'ARR', 'customers'],
+  economics: ['CAC', 'LTV', 'unit economics', 'payback', 'margin', 'burn rate', 'runway'],
+  competition: ['competitors', 'competitive advantage', 'moat', 'differentiation', 'barrier'],
+  model: ['business model', 'pricing', 'monetization', 'subscription', 'marketplace', 'SaaS'],
+  funding: ['use of funds', 'funding', 'capital', 'milestone', 'budget', 'hire', 'spend'],
+  exit: ['exit', 'acquisition', 'IPO', 'acquirer', 'strategic buyer', 'multiple'],
+  risks: ['risk', 'challenge', 'threat', 'mitigation', 'what could kill', 'failure'],
+}
+
+const PRODUCT_PM_KEYWORDS: TopicKeywords = {
+  market: ['market', 'TAM', 'segment', 'customer base', 'growth', 'opportunity'],
+  persona: ['user persona', 'JTBD', 'jobs to be done', 'customer profile', 'who is the user'],
+  problem: ['problem', 'pain point', 'hair on fire', 'urgent', 'critical', 'need'],
+  solution: ['solution', 'feature', 'unique', 'differentiation', '10x better', 'alternative'],
+  roadmap: ['roadmap', 'prioritization', 'RICE', 'next feature', 'timeline', 'milestone'],
+  metrics: ['metric', 'KPI', 'north star', 'success', 'measure', 'analytics', 'tracking'],
+  mvp: ['MVP', 'MLP', 'minimum viable', 'minimum lovable', 'iteration', 'evolution'],
+  narrative: ['story', 'narrative', 'press release', 'vision', 'pitch', 'messaging'],
+  experiments: ['experiment', 'test', 'hypothesis', 'learning', 'validation', 'A/B test'],
+}
+
+export function analyzeCompletedTopics(
+  messages: Array<{ role: string; content: string }>,
+  agentType: string
+): string[] {
+  const keywords = agentType === 'Product PM' ? PRODUCT_PM_KEYWORDS : SHARK_VC_KEYWORDS
+  const completedTopics = new Set<string>()
+  
+  // Only analyze assistant messages (the bot's responses)
+  const assistantMessages = messages
+    .filter(m => m.role === 'assistant')
+    .map(m => m.content.toLowerCase())
+    .join(' ')
+
+  // Check each topic to see if it's been discussed
+  Object.entries(keywords).forEach(([topicId, topicKeywords]) => {
+    const isDiscussed = topicKeywords.some(keyword => 
+      assistantMessages.includes(keyword.toLowerCase())
+    )
+    
+    if (isDiscussed) {
+      // Additional check: topic should be discussed substantively (not just mentioned)
+      const topicMentions = topicKeywords.filter(keyword => 
+        assistantMessages.includes(keyword.toLowerCase())
+      ).length
+      
+      // Consider topic covered if multiple keywords are mentioned or discussed at length
+      if (topicMentions >= 2 || (topicKeywords[0] && assistantMessages.split(topicKeywords[0]).length > 2)) {
+        completedTopics.add(topicId)
+      }
+    }
+  })
+
+  return Array.from(completedTopics)
+} 
+---
+
+## FILE: frontend/postcss.config.js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+---
+
+## FILE: frontend/app/globals.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom animations */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-secondary;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/20;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/30;
+}
+
+/* Message animations */
+.message-enter {
+  animation: message-enter 0.3s ease-out;
+}
+
+@keyframes message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Progress indicator animations */
+@keyframes check-mark {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(-45deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-check {
+  animation: check-mark 0.3s ease-out;
+}
+
+/* Progress bar fill animation */
+@keyframes progress-fill {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+.animate-progress {
+  animation: progress-fill 0.5s ease-out;
+}
+
+/* Celebration animation */
+@keyframes celebration {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.animate-celebration {
+  animation: celebration 0.5s ease-in-out;
+}
+---
+
