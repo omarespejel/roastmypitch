@@ -16,11 +16,11 @@ services:
         fromService:
           type: web
           name: starknet-founders-bot-frontend
-          property: HOST_URL
+          property: host  # Changed from HOST_URL to host
       - key: PRODUCTION_FRONTEND_URL
         sync: false
       - key: PYTHON_VERSION
-        value: 3.11
+        value: "3.11"
     healthCheckPath: /
 
   # Frontend Web Service
@@ -39,18 +39,12 @@ services:
       - key: GITHUB_SECRET
         sync: false
       - key: NEXTAUTH_URL
-        fromService:
-          type: web
-          name: starknet-founders-bot-frontend
-          property: HOST_URL
+        sync: false  # Set manually since we need https:// prefix
       - key: NEXTAUTH_SECRET
         sync: false
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: starknet-founders-bot-backend
-          property: HOST_URL
+        sync: false  # Set manually since we need https:// prefix
       - key: NODE_VERSION
-        value: 20
+        value: "20"
     healthCheckPath: /
     autoDeploy: true 
