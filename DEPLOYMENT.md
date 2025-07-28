@@ -6,8 +6,16 @@
 
 1. **Connect Repository**: Link your GitHub repository to Render
 2. **Import Blueprint**: Use the `render.yaml` file in the repo root
-3. **Configure Environment Variables**: Set the required variables (see below)
-4. **Deploy**: Both services will deploy automatically
+3. **Configure Environment Variables**: Only `OPENROUTER_API_KEY`, `GITHUB_ID`, `GITHUB_SECRET`, and `NEXTAUTH_SECRET` need manual setup (URLs auto-link)
+4. **Deploy**: Both services will deploy automatically with persistent storage and auto-deploy enabled
+
+#### Blueprint Features:
+- **🔗 Auto-linking**: Frontend and backend URLs automatically connect
+- **💾 Persistent Storage**: ChromaDB data survives deployments (1GB disk)
+- **🚀 Auto-deploy**: Automatic deployments on git push
+- **🌍 EU Region**: Frankfurt region for optimal Berlin latency
+- **⚙️ Version Control**: Specified Python 3.11 and Node 20 versions
+- **📦 Bun Support**: Pre-build command installs Bun for frontend
 
 ### Option 2: Manual Service Creation
 
@@ -31,21 +39,23 @@
 
 ### Backend Service Environment Variables
 
-| Variable | Description | Example Value |
-|----------|-------------|---------------|
-| `OPENROUTER_API_KEY` | Your OpenRouter API key for AI features | `sk-or-v1-xxx...` |
-| `FRONTEND_URL` | Development frontend URL | `http://localhost:3000` |
-| `PRODUCTION_FRONTEND_URL` | Production frontend URL | `https://your-frontend.onrender.com` |
+| Variable | Description | Example Value | Auto-Configured |
+|----------|-------------|---------------|------------------|
+| `OPENROUTER_API_KEY` | Your OpenRouter API key for AI features | `sk-or-v1-xxx...` | ❌ Manual |
+| `FRONTEND_URL` | Frontend service URL | Auto-linked | ✅ Auto |
+| `PRODUCTION_FRONTEND_URL` | Production frontend URL (optional) | `https://custom-domain.com` | ❌ Manual |
+| `PYTHON_VERSION` | Python runtime version | `3.11` | ✅ Auto |
 
 ### Frontend Service Environment Variables
 
-| Variable | Description | Example Value |
-|----------|-------------|---------------|
-| `GITHUB_ID` | GitHub OAuth App Client ID | `Iv1.xxx...` |
-| `GITHUB_SECRET` | GitHub OAuth App Client Secret | `xxx...` |
-| `NEXTAUTH_URL` | Your frontend service URL | `https://your-frontend.onrender.com` |
-| `NEXTAUTH_SECRET` | Random 32-character string | `your-random-secret-here` |
-| `NEXT_PUBLIC_API_URL` | Your backend service URL | `https://your-backend.onrender.com` |
+| Variable | Description | Example Value | Auto-Configured |
+|----------|-------------|---------------|------------------|
+| `GITHUB_ID` | GitHub OAuth App Client ID | `Iv1.xxx...` | ❌ Manual |
+| `GITHUB_SECRET` | GitHub OAuth App Client Secret | `xxx...` | ❌ Manual |
+| `NEXTAUTH_URL` | Frontend service URL | Auto-linked | ✅ Auto |
+| `NEXTAUTH_SECRET` | Random 32-character string | `your-random-secret-here` | ❌ Manual |
+| `NEXT_PUBLIC_API_URL` | Backend service URL | Auto-linked | ✅ Auto |
+| `NODE_VERSION` | Node runtime version | `20` | ✅ Auto |
 
 ## 📋 Pre-Deployment Checklist
 

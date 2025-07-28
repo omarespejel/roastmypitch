@@ -2,13 +2,16 @@
 
 ## Backend Service Environment Variables
 
-Copy these variables to your Render backend service:
+**Manual Configuration Required** (URLs auto-link with render.yaml blueprint):
 
 ```
 OPENROUTER_API_KEY=sk-or-v1-your-actual-api-key-here
-FRONTEND_URL=http://localhost:3000
-PRODUCTION_FRONTEND_URL=https://your-frontend-app.onrender.com
+PRODUCTION_FRONTEND_URL=https://custom-domain.com  # Optional: Only if using custom domain
 ```
+
+**Auto-Configured by Blueprint**:
+- `FRONTEND_URL` - Auto-links to frontend service
+- `PYTHON_VERSION` - Set to 3.11
 
 ### Getting OPENROUTER_API_KEY:
 1. Go to [openrouter.ai](https://openrouter.ai)
@@ -21,15 +24,18 @@ PRODUCTION_FRONTEND_URL=https://your-frontend-app.onrender.com
 
 ## Frontend Service Environment Variables
 
-Copy these variables to your Render frontend service:
+**Manual Configuration Required** (URLs auto-link with render.yaml blueprint):
 
 ```
 GITHUB_ID=Iv1.your-github-oauth-app-id
 GITHUB_SECRET=your-github-oauth-app-secret
-NEXTAUTH_URL=https://your-frontend-app.onrender.com
 NEXTAUTH_SECRET=your-random-32-character-secret-here
-NEXT_PUBLIC_API_URL=https://your-backend-app.onrender.com
 ```
+
+**Auto-Configured by Blueprint**:
+- `NEXTAUTH_URL` - Auto-links to frontend service URL
+- `NEXT_PUBLIC_API_URL` - Auto-links to backend service URL
+- `NODE_VERSION` - Set to 20
 
 ### Getting GitHub OAuth Credentials:
 1. Go to [GitHub Developer Settings](https://github.com/settings/applications/new)
