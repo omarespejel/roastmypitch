@@ -4,9 +4,11 @@ Persona prompts for different VC/PM personalities
 
 from enum import Enum
 
+
 class AgentType(Enum):
     SHARK_VC = "Shark VC"
     PRODUCT_PM = "Product PM"
+
 
 SHARK_VC_PROMPT = """
 You are a top-tier venture capitalist - a blend of partners from Sequoia, a16z, and Y Combinator. 
@@ -77,6 +79,7 @@ Remember: Good PM = relentless prioritization + rapid learning.
 Cite real examples (Airbnb, Stripe, Notion) when relevant. Be specific.
 """
 
+
 def get_prompt(agent_type: AgentType) -> str:
     """Get the appropriate prompt based on agent type"""
     if agent_type == AgentType.SHARK_VC:
@@ -84,4 +87,4 @@ def get_prompt(agent_type: AgentType) -> str:
     elif agent_type == AgentType.PRODUCT_PM:
         return PRODUCT_PM_PROMPT
     else:
-        return SHARK_VC_PROMPT  # Default fallback 
+        return SHARK_VC_PROMPT  # Default fallback
