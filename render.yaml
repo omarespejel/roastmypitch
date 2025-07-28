@@ -2,12 +2,12 @@ services:
   # Backend API Service
   - type: web
     name: starknet-founders-bot-backend
+    env: python  # Explicit env helps with validation
     runtime: python
-    repo: https://github.com/omarespejel/roastmypitch  # Optional: Your repo URL
-    rootDir: backend  # Better for monorepo: Set root to backend folder
-    region: frankfurt  # For EU latency (Berlin)
-    plan: starter  # Or free for testing
-    buildCommand: pip install -r requirements.txt  # No cd needed with rootDir
+    rootDir: backend
+    region: frankfurt
+    plan: starter
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENROUTER_API_KEY
@@ -16,26 +16,26 @@ services:
         fromService:
           type: web
           name: starknet-founders-bot-frontend
-          property: HOST_URL  # Auto-links to frontend URL
+          property: HOST_URL
       - key: PRODUCTION_FRONTEND_URL
         sync: false
       - key: PYTHON_VERSION
-        value: 3.11  # Specify version
+        value: 3.11
     healthCheckPath: /
-    disks:  # Add persistent disk for ChromaDB
+    disks:  # Correctly nested with proper indentation
       - name: chroma-data
-        mountPath: /chroma_db  # Matches your app's path
-        sizeGB: 1  # Adjust as needed
+        mountPath: /chroma_db
+        sizeGB: 1  # Explicit size is required; adjust as needed (billed ~$0.25/GB/month)
 
   # Frontend Web Service
   - type: web
     name: starknet-founders-bot-frontend
+    env: node  # Explicit env for Node
     runtime: node
-    repo: https://github.com/omarespejel/roastmypitch
     rootDir: frontend
     region: frankfurt
     plan: starter
-    preBuildCommand: npm install -g bun  # Install Bun before build (alternative: use Docker if needed)
+    preBuildCommand: npm install -g bun  # Correct field name; installs Bun before build
     buildCommand: bun install && bun run build
     startCommand: bun start
     envVars:
@@ -47,17 +47,15 @@ services:
         fromService:
           type: web
           name: starknet-founders-bot-frontend
-          property: HOST_URL  # Auto-sets to this service's URL
+          property: HOST_URL
       - key: NEXTAUTH_SECRET
         sync: false
       - key: NEXT_PUBLIC_API_URL
         fromService:
           type: web
           name: starknet-founders-bot-backend
-          property: HOST_URL  # Auto-links to backend
+          property: HOST_URL
       - key: NODE_VERSION
-        value: 20  # Specify Node version
-    healthCheckPath: /  # Add for frontend
-    autoDeploy: true  # Enable auto-deploys on Git push
-
-# Database - ChromaDB files persist with disk storage above 
+        value: 20
+    healthCheckPath: /
+    autoDeploy: true 

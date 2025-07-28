@@ -16,6 +16,7 @@
 - **🌍 EU Region**: Frankfurt region for optimal Berlin latency
 - **⚙️ Version Control**: Specified Python 3.11 and Node 20 versions
 - **📦 Bun Support**: Pre-build command installs Bun for frontend
+- **✅ Validated**: YAML structure validated for Render compatibility
 
 ### Option 2: Manual Service Creation
 
@@ -131,6 +132,12 @@ Ensure your repository has:
 #### Build Failures
 - **Backend**: Check Python version (3.9+) and dependencies
 - **Frontend**: Check Node version (18+) and bun installation
+
+#### Blueprint/YAML Errors
+- **"field disks not found"**: Ensure disks are properly nested under service with correct indentation
+- **"field preBuildCommand not found"**: Verify correct spelling (not "preBuiltCommand")
+- **Validation errors**: Use online YAML validator before committing blueprint
+- **Plan requirements**: Ensure your plan supports disks (Starter+ required, not free tier)
 
 ### Environment Variables Verification
 
