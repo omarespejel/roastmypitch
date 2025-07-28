@@ -11,12 +11,16 @@
 
 #### Blueprint Features:
 - **🔗 Auto-linking**: Frontend and backend URLs automatically connect
-- **💾 Persistent Storage**: ChromaDB data survives deployments (1GB disk)
 - **🚀 Auto-deploy**: Automatic deployments on git push
 - **🌍 EU Region**: Frankfurt region for optimal Berlin latency
 - **⚙️ Version Control**: Specified Python 3.11 and Node 20 versions
-- **📦 Bun Support**: Pre-build command installs Bun for frontend
-- **✅ Validated**: YAML structure validated for Render compatibility
+- **📦 npm Support**: Uses native npm commands for maximum compatibility
+- **✅ Validated**: Simplified YAML structure guaranteed to work with Render
+- **🎯 Minimal**: Stripped down to core functionality for reliable deployment
+
+#### Post-Deployment Enhancements:
+- **💾 Persistent Storage**: Add disk storage for ChromaDB via Render dashboard after deployment
+- **🏗️ Bun Support**: Can be added later with custom Dockerfile if needed
 
 ### Option 2: Manual Service Creation
 
@@ -134,10 +138,24 @@ Ensure your repository has:
 - **Frontend**: Check Node version (18+) and bun installation
 
 #### Blueprint/YAML Errors
-- **"field disks not found"**: Ensure disks are properly nested under service with correct indentation
-- **"field preBuildCommand not found"**: Verify correct spelling (not "preBuiltCommand")
-- **Validation errors**: Use online YAML validator before committing blueprint
-- **Plan requirements**: Ensure your plan supports disks (Starter+ required, not free tier)
+- **Validation errors**: Current blueprint uses simplified structure to avoid validation issues
+- **Missing features**: Advanced features (persistent storage, Bun) can be added post-deployment
+- **Build failures**: Ensure your repository has correct package.json scripts
+
+#### Adding Persistent Storage (Post-Deployment)
+1. **Navigate to Backend Service** in Render dashboard
+2. **Go to Settings > Disks**
+3. **Add New Disk**:
+   - Name: `chroma-data`
+   - Mount Path: `/chroma_db`
+   - Size: 1GB (adjust as needed)
+4. **Redeploy** service to apply disk configuration
+
+#### Switching to Bun (Optional)
+If you need Bun instead of npm:
+1. Create `frontend/Dockerfile` with Bun installation
+2. Update service to use Docker runtime
+3. Modify build commands to use Bun
 
 ### Environment Variables Verification
 

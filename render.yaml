@@ -2,7 +2,7 @@ services:
   # Backend API Service
   - type: web
     name: starknet-founders-bot-backend
-    env: python  # Explicit env helps with validation
+    env: python
     runtime: python
     rootDir: backend
     region: frankfurt
@@ -22,22 +22,17 @@ services:
       - key: PYTHON_VERSION
         value: 3.11
     healthCheckPath: /
-    disks:  # Correctly nested with proper indentation
-      - name: chroma-data
-        mountPath: /chroma_db
-        sizeGB: 1  # Explicit size is required; adjust as needed (billed ~$0.25/GB/month)
 
   # Frontend Web Service
   - type: web
     name: starknet-founders-bot-frontend
-    env: node  # Explicit env for Node
+    env: node
     runtime: node
     rootDir: frontend
     region: frankfurt
     plan: starter
-    preBuildCommand: npm install -g bun  # Correct field name; installs Bun before build
-    buildCommand: bun install && bun run build
-    startCommand: bun start
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: GITHUB_ID
         sync: false

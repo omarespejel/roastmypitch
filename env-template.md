@@ -13,6 +13,8 @@ PRODUCTION_FRONTEND_URL=https://custom-domain.com  # Optional: Only if using cus
 - `FRONTEND_URL` - Auto-links to frontend service
 - `PYTHON_VERSION` - Set to 3.11
 
+**Note**: This simplified blueprint focuses on core functionality. Advanced features like persistent storage for ChromaDB can be added manually via the Render dashboard after deployment.
+
 ### Getting OPENROUTER_API_KEY:
 1. Go to [openrouter.ai](https://openrouter.ai)
 2. Sign up and verify your account
