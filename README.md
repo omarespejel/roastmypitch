@@ -98,17 +98,27 @@ See [SECURITY.md](./SECURITY.md) for complete security documentation.
 
 ### Quick Deploy to Render
 
+#### Option 1: Blueprint Deployment (Recommended)
+1. Import the `render.yaml` blueprint from your repository
+2. Configure environment variables using [`env-template.md`](./env-template.md)
+3. Deploy both services automatically
+
+#### Option 2: Manual Deployment
 1. **Backend Service**:
-   - Build Command: `cd backend && uv sync`
-   - Start Command: `cd backend && uv run uvicorn src.main:app --host 0.0.0.0 --port $PORT`
+   - Build Command: `cd backend && pip install -r requirements.txt`
+   - Start Command: `cd backend && uvicorn src.main:app --host 0.0.0.0 --port $PORT`
 
 2. **Frontend Service**:
    - Build Command: `cd frontend && bun install && bun run build`
    - Start Command: `cd frontend && bun start`
 
-3. **Environment Variables**: Set all required variables in Render dashboard
+3. **Environment Variables**: Use [`env-template.md`](./env-template.md) for setup
 
-See [SECURITY.md](./SECURITY.md) for detailed deployment instructions.
+### Deployment Documentation
+- 📋 **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
+- 🔧 **[env-template.md](./env-template.md)** - Environment variables template
+- 🔒 **[SECURITY.md](./SECURITY.md)** - Security configurations
+- ⚙️ **[render.yaml](./render.yaml)** - Render blueprint configuration
 
 ## 📡 API Endpoints
 
