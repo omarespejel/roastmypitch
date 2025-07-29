@@ -1,8 +1,10 @@
 import os
 import shutil
 import time
+import logging
 from collections import defaultdict
-from typing import Dict, Optional
+from typing import Dict, Optional, Any, List
+from logging.handlers import RotatingFileHandler
 
 import chromadb
 from dotenv import load_dotenv
@@ -26,6 +28,25 @@ from .prompts import AgentType, get_prompt
 
 # --- Load Environment and Configure Settings ---
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Create a rotating file handler
+file_handler = RotatingFileHandler(
+    'backend.log', maxBytes=10485760, backupCount=5
+)
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(
+    logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+)
+
+# Get logger
+logger = logging.getLogger(__name__)
+logger.addHandler(file_handler)
 
 Settings.llm = OpenAILike(
     api_base="https://openrouter.ai/api/v1",
@@ -172,6 +193,18 @@ class UploadResponse(BaseModel):
     filename: str
 
 
+class CompetitorAnalysisRequest(BaseModel):
+    description: str
+    starknet_focus: bool = True
+
+
+class AdaptiveQuestionsRequest(BaseModel):
+    missing_sections: List[str]
+    agent_type: str = "Shark VC"
+    founder_context: str = ""
+    document_content: str = ""
+
+
 # --- API Endpoints ---
 @app.post("/upload/{founder_id}", response_model=UploadResponse)
 async def upload_document(
@@ -237,7 +270,7 @@ async def upload_document(
 
     except Exception as e:
         # Log error for debugging but don't expose internal details
-        print(f"Upload error for {founder_id}: {str(e)}")
+        logger.error(f"Upload error for {founder_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to process document.")
 
     finally:
@@ -343,7 +376,7 @@ async def analyze_pitch_deck(
         return analysis
 
     except Exception as e:
-        print(f"Analysis error for {founder_id}: {str(e)}")
+        logger.error(f"Analysis error for {founder_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to analyze documents")
 
 
@@ -369,7 +402,7 @@ async def get_ecosystem_updates(founder_space: str, request: Request = None):
         updates = await researcher.research_ecosystem_updates(sanitized_space)
         return updates
     except Exception as e:
-        print(f"Ecosystem research error: {str(e)}")
+        logger.error(f"Ecosystem research error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch ecosystem updates")
 
 
@@ -384,26 +417,24 @@ async def get_case_studies(request: Request = None):
         case_studies = await researcher.research_successful_cases()
         return case_studies
     except Exception as e:
-        print(f"Case studies error: {str(e)}")
+        logger.error(f"Case studies error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch case studies")
 
 
 @app.post("/competitor-analysis")
-async def analyze_competitors(request: Dict[str, any], req: Request = None):
+async def analyze_competitors(request: CompetitorAnalysisRequest, req: Request = None):
     # Rate limiting for expensive AI operations
     if req:
         client_ip = req.client.host
         check_rate_limit(client_ip, is_expensive=True)
 
-    # Input validation
-    if not isinstance(request, dict):
-        raise HTTPException(status_code=400, detail="Invalid request format")
+    # Remove the validation code since Pydantic handles it now
+    # Just use the validated data
+    project_description = request.description
+    starknet_focus = request.starknet_focus
 
-    project_description = request.get("description", "")
-    starknet_focus = request.get("starknet_focus", True)
-
-    # Validate project description
-    if not project_description or len(project_description.strip()) < 10:
+    # Validate project description length
+    if len(project_description) < 10:
         raise HTTPException(
             status_code=400, detail="Project description must be at least 10 characters"
         )
@@ -413,69 +444,53 @@ async def analyze_competitors(request: Dict[str, any], req: Request = None):
             status_code=400, detail="Project description too long (max 2000 characters)"
         )
 
-    # Validate starknet_focus parameter
-    if not isinstance(starknet_focus, bool):
-        raise HTTPException(status_code=400, detail="Invalid starknet_focus parameter")
-
     try:
         analysis = await competitor_analyzer.analyze_competitors(
             project_description.strip(), starknet_focus
         )
         return analysis
     except Exception as e:
-        print(f"Competitor analysis error: {str(e)}")
+        logger.error(f"Competitor analysis error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to analyze competitors")
 
 
 @app.post("/adaptive-questions")
-async def get_adaptive_questions(request: Dict[str, any], req: Request = None):
+async def get_adaptive_questions(request: AdaptiveQuestionsRequest, req: Request = None):
     # Rate limiting for AI question generation
     if req:
         client_ip = req.client.host
         check_rate_limit(client_ip, is_expensive=True)
 
-    # Input validation
-    if not isinstance(request, dict):
-        raise HTTPException(status_code=400, detail="Invalid request format")
-
-    missing_sections = request.get("missing_sections", [])
-    agent_type = request.get("agent_type", "Shark VC")
-    founder_context = request.get("founder_context", "")
-    document_content = request.get("document_content", "")
-
-    # Validate missing_sections
-    if not isinstance(missing_sections, list):
-        raise HTTPException(status_code=400, detail="missing_sections must be a list")
-
-    if len(missing_sections) > 20:
+    # Validate list length
+    if len(request.missing_sections) > 20:
         raise HTTPException(status_code=400, detail="Too many missing sections")
 
     # Validate agent_type
     valid_agents = ["Shark VC", "Product PM"]
-    if agent_type not in valid_agents:
+    if request.agent_type not in valid_agents:
         raise HTTPException(status_code=400, detail="Invalid agent type")
 
     # Validate string lengths
-    if len(founder_context) > 500:
+    if len(request.founder_context) > 500:
         raise HTTPException(status_code=400, detail="Founder context too long")
 
-    if len(document_content) > 5000:
+    if len(request.document_content) > 5000:
         raise HTTPException(status_code=400, detail="Document content too long")
 
     try:
         questions = question_engine.generate_adaptive_questions(
-            missing_sections, agent_type
+            request.missing_sections, request.agent_type
         )
 
         # Contextualize questions
         for question in questions:
             question["question"] = question_engine.contextualize_question(
-                question["question"], founder_context.strip(), document_content.strip()
+                question["question"], request.founder_context, request.document_content
             )
 
         return {"questions": questions}
     except Exception as e:
-        print(f"Adaptive questions error: {str(e)}")
+        logger.error(f"Adaptive questions error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate questions")
 
 
