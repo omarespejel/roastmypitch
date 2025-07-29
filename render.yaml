@@ -8,7 +8,7 @@ services:
     region: frankfurt
     plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn src.main:socket_app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENROUTER_API_KEY
         sync: false
