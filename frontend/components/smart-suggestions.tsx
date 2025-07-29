@@ -32,7 +32,11 @@ export default function SmartSuggestions({ founderId, selectedAgent, onActionCli
     const fetchAnalysis = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch(`${apiUrl}/analyze/${founderId}?agent_type=${selectedAgent}`)
+        const response = await fetch(`${apiUrl}/analyze/${founderId}?agent_type=${selectedAgent}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // No body is needed for this endpoint, but POST is required
+        })
         if (response.ok) {
           const data = await response.json()
           setAnalysis(data)

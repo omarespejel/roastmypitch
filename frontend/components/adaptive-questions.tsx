@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card'
 import { Button } from '@/app/components/ui/button'
 import { Badge } from '@/app/components/ui/badge'
-import { MessageCircle, Send, ChevronRight } from 'lucide-react'
+import { MessageCircle, Send, ChevronRight, AlertTriangle } from 'lucide-react'
 
 interface AdaptiveQuestion {
   section: string
@@ -29,38 +29,133 @@ export default function AdaptiveQuestions({
   const [questions, setQuestions] = useState<AdaptiveQuestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [rateLimited, setRateLimited] = useState(false)
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  
+  // Debouncing and request deduplication
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const lastRequestPayloadRef = useRef<string>('')
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const fetchQuestions = async () => {
       if (missingSections.length === 0) return
 
-      setIsLoading(true)
-      try {
-        const response = await fetch(`${apiUrl}/adaptive-questions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            missing_sections: missingSections,
-            agent_type: selectedAgent,
-            founder_context: founderContext,
-            document_content: "" // Could be enhanced with actual document content
-          })
-        })
+      // Create request payload for comparison
+      const requestPayload = JSON.stringify({
+        missing_sections: missingSections,
+        agent_type: selectedAgent,
+        founder_context: founderContext,
+        document_content: ""
+      })
 
-        if (response.ok) {
-          const data = await response.json()
-          setQuestions(data.questions || [])
-        }
-      } catch (error) {
-        console.error('Failed to fetch adaptive questions:', error)
-      } finally {
-        setIsLoading(false)
+      // Skip if this is the same request as last time (deduplication)
+      if (requestPayload === lastRequestPayloadRef.current) {
+        return
       }
+
+      // Cancel any previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Clear any existing debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+
+      // Debounce the API call
+      debounceRef.current = setTimeout(async () => {
+        setIsLoading(true)
+        setError(null)
+        setRateLimited(false)
+
+        // Create new abort controller for this request
+        abortControllerRef.current = new AbortController()
+        
+        try {
+          const response = await fetch(`${apiUrl}/adaptive-questions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: requestPayload,
+            signal: abortControllerRef.current.signal
+          })
+
+          if (response.status === 429) {
+            setRateLimited(true)
+            setError('You\'re making requests too quickly. Please wait a few seconds and try again.')
+            return
+          }
+
+          if (response.ok) {
+            const data = await response.json()
+            setQuestions(data.questions || [])
+            lastRequestPayloadRef.current = requestPayload // Remember this successful request
+          } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            // Request was cancelled, this is normal
+            return
+          }
+          console.error('Failed to fetch adaptive questions:', error)
+          setError('Failed to load questions. Please try again.')
+        } finally {
+          setIsLoading(false)
+        }
+      }, 500) // 500ms debounce delay
     }
 
     fetchQuestions()
+
+    // Cleanup function
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
   }, [missingSections, selectedAgent, founderContext, apiUrl])
+
+  // Auto-retry after rate limit cooldown
+  useEffect(() => {
+    if (rateLimited) {
+      const retryTimer = setTimeout(() => {
+        setRateLimited(false)
+        setError(null)
+        // Trigger a refetch by clearing the last payload
+        lastRequestPayloadRef.current = ''
+      }, 30000) // Retry after 30 seconds
+
+      return () => clearTimeout(retryTimer)
+    }
+  }, [rateLimited])
+
+  // Show error state
+  if (error) {
+    return (
+      <Card className="mb-4 border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              {rateLimited ? 'Rate Limited' : 'Error Loading Questions'}
+            </span>
+          </div>
+          <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">{error}</p>
+          {rateLimited && (
+            <p className="text-xs text-orange-500 dark:text-orange-500 mt-2">
+              Retrying automatically in a few seconds...
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (isLoading || questions.length === 0) return null
 

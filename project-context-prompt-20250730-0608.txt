@@ -27,8 +27,6 @@ You are an expert full-stack developer and software architect with deep expertis
 │   │   ├── __init__.py
 │   │   ├── adaptive_questioning.py
 │   │   ├── analysis_engine.py
-│   │   ├── competitor_analysis.py
-│   │   ├── ecosystem_research.py
 │   │   ├── main.py
 │   │   └── prompts.py
 │   └── uv.lock
@@ -66,9 +64,7 @@ You are an expert full-stack developer and software architect with deep expertis
 │   │   ├── adaptive-questions.tsx
 │   │   ├── agent-selector.tsx
 │   │   ├── chat-interface.tsx
-│   │   ├── competitor-analysis.tsx
 │   │   ├── custom-icons.tsx
-│   │   ├── ecosystem-updates.tsx
 │   │   ├── feedback-modal.tsx
 │   │   ├── header.tsx
 │   │   ├── message-input.tsx
@@ -89,10 +85,10 @@ You are an expert full-stack developer and software architect with deep expertis
 │   └── types
 │       └── next-auth.d.ts
 ├── generate-context.sh
-├── project-context-prompt-20250729-2214.txt
+├── project-context-prompt-20250730-0608.txt
 └── render.yaml
 
-18 directories, 67 files
+18 directories, 63 files
 
 ## FILE: README.md
 # Starknet Founders Bot v2
@@ -280,18 +276,18 @@ dependencies = [
     "fastapi>=0.111.0",
     "uvicorn>=0.30.1",
     "python-dotenv>=1.0.1",
+    "python-multipart>=0.0.6",
     "openai>=1.35.3",
     "llama-index>=0.10.50",
     "llama-index-llms-openai>=0.1.24",
     "llama-index-vector-stores-chroma>=0.1.8",
-    "chromadb>=0.5.3",
+    "chromadb>=0.5.5",
     "anthropic>=0.28.0",
     "llama-index-embeddings-huggingface>=0.2.0",
     "pypdf>=4.2.0",
     "llama-index-llms-openai-like>=0.2.0",
     "requests>=2.31.0",
     "python-socketio>=5.11.0",
-    "fastapi-socketio>=0.0.10",
 ]
 readme = "README.md"
 requires-python = ">=3.8.1"
@@ -850,247 +846,6 @@ class AdaptiveQuestionEngine:
 
 ---
 
-## FILE: backend/src/competitor_analysis.py
-import os
-from typing import Dict, List
-
-from llama_index.llms.openai_like import OpenAILike
-
-
-class CompetitorAnalyzer:
-    def __init__(self):
-        self.analysis_llm = OpenAILike(
-            api_base="https://openrouter.ai/api/v1",
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="perplexity/sonar-pro",
-            is_chat_model=True,
-            context_window=200000,
-            max_tokens=1000,
-        )
-
-    async def analyze_competitors(
-        self, project_description: str, starknet_focus: bool = True
-    ) -> Dict:
-        """Analyze competitors for a given project in the Starknet ecosystem"""
-
-        scope = (
-            "Starknet ecosystem and broader blockchain/DeFi space"
-            if starknet_focus
-            else "blockchain and traditional tech space"
-        )
-
-        analysis_query = f"""
-        Analyze competitors for this project: {project_description}
-        
-        Focus on the {scope}. Provide:
-        
-        1. DIRECT COMPETITORS (same solution, same market):
-        - Project names and descriptions
-        - Market positioning and differentiation
-        - Strengths and weaknesses
-        - Market share/traction data
-        
-        2. INDIRECT COMPETITORS (different solution, same problem):
-        - Alternative approaches to solving the same problem
-        - Why users might choose them instead
-        - Market gaps they don't address
-        
-        3. COMPETITIVE ANALYSIS:
-        - Market positioning opportunities
-        - Differentiation strategies
-        - Competitive advantages to emphasize
-        - Potential threats and how to address them
-        
-        4. STARKNET-SPECIFIC ADVANTAGES:
-        - How Starknet's features create competitive moats
-        - Ecosystem synergies and integrations
-        - Cost/performance advantages
-        
-        Be specific with project names, metrics, and actionable insights. Focus on recent developments and current market dynamics.
-        """
-
-        try:
-            response = await self.analysis_llm.acomplete(analysis_query)
-
-            # Parse and structure the analysis
-            return {
-                "analysis": response.text,
-                "direct_competitors": self._extract_competitors(
-                    response.text, "direct"
-                ),
-                "indirect_competitors": self._extract_competitors(
-                    response.text, "indirect"
-                ),
-                "competitive_advantages": self._extract_advantages(response.text),
-                "recommended_positioning": self._extract_positioning(response.text),
-                "timestamp": "current",
-            }
-        except Exception as e:
-            return {
-                "error": f"Unable to complete competitor analysis: {str(e)}",
-                "analysis": "",
-                "direct_competitors": [],
-                "indirect_competitors": [],
-                "competitive_advantages": [],
-                "recommended_positioning": "",
-            }
-
-    def _extract_competitors(self, text: str, competitor_type: str) -> List[Dict]:
-        # Simple extraction logic - in production, use more sophisticated NLP
-        competitors = []
-        lines = text.split("\n")
-
-        # Look for competitor mentions
-        for line in lines:
-            if any(
-                word in line.lower()
-                for word in ["competitor", "alternative", "project"]
-            ):
-                if "-" in line or "•" in line:
-                    # Extract project name (first part before description)
-                    parts = line.strip(" -•").split(":")
-                    if len(parts) >= 2:
-                        competitors.append(
-                            {"name": parts[0].strip(), "description": parts[1].strip()}
-                        )
-
-        return competitors[:5]  # Limit to top 5
-
-    def _extract_advantages(self, text: str) -> List[str]:
-        # Extract competitive advantages
-        advantages = []
-        lines = text.split("\n")
-
-        for line in lines:
-            if any(
-                phrase in line.lower()
-                for phrase in ["advantage", "strength", "benefit", "moat"]
-            ):
-                if "-" in line or "•" in line:
-                    advantages.append(line.strip(" -•").strip())
-
-        return advantages[:5]  # Limit to top 5
-
-    def _extract_positioning(self, text: str) -> str:
-        # Extract positioning recommendations
-        positioning_keywords = ["positioning", "strategy", "differentiation", "focus"]
-        lines = text.split("\n")
-
-        for line in lines:
-            if any(keyword in line.lower() for keyword in positioning_keywords):
-                return line.strip()
-
-        return "Focus on unique Starknet advantages and ecosystem synergies"
-
----
-
-## FILE: backend/src/ecosystem_research.py
-import asyncio
-import os
-from typing import Dict, List, Optional
-
-from llama_index.llms.openai_like import OpenAILike
-
-
-class StarknetEcosystemResearcher:
-    def __init__(self):
-        self.research_llm = OpenAILike(
-            api_base="https://openrouter.ai/api/v1",
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="perplexity/sonar-pro",
-            is_chat_model=True,
-            context_window=200000,
-            max_tokens=800,
-        )
-
-    async def research_ecosystem_updates(self, founder_space: str) -> Dict[str, any]:
-        """Research latest Starknet ecosystem developments relevant to founder's space"""
-
-        research_query = f"""
-        Research the latest Starknet ecosystem developments (last 3 months) specifically relevant to {founder_space}. 
-        Focus on:
-        1. New protocol launches and updates
-        2. Funding announcements and partnerships
-        3. Technical improvements and upgrades
-        4. Developer tooling updates
-        5. Community initiatives and programs
-        
-        Prioritize information from official Starknet channels, Twitter updates, and ecosystem announcements.
-        Provide specific dates, amounts, and actionable insights for founders building in this space.
-        """
-
-        try:
-            response = await self.research_llm.acomplete(research_query)
-            return {
-                "updates": response.text,
-                "timestamp": "recent",
-                "relevance_score": "high",
-                "sources": "Starknet ecosystem, Twitter, official announcements",
-            }
-        except Exception as e:
-            return {
-                "updates": f"Unable to fetch latest updates: {str(e)}",
-                "timestamp": "error",
-                "relevance_score": "unknown",
-                "sources": "error",
-            }
-
-    async def research_successful_cases(self) -> Dict[str, List[Dict]]:
-        """Research AVNU and Ekubo case studies"""
-
-        case_studies_query = """
-        Provide detailed case studies for these successful Starknet projects:
-        
-        1. AVNU (DeFi aggregator with gasless trading):
-        - Business model and value proposition
-        - Key metrics and achievements
-        - Innovative features (especially Paymaster)
-        - Growth strategy and market positioning
-        - Lessons for other founders
-        
-        2. Ekubo (Advanced AMM):
-        - Technical innovations and capital efficiency
-        - Market capture and competitive advantages  
-        - Token launch strategy (High Float Low FDV)
-        - Community building and ecosystem integration
-        - Success factors that can be replicated
-        
-        Focus on actionable insights and specific strategies that other Starknet founders can learn from.
-        Include recent developments and current status of both projects.
-        """
-
-        try:
-            response = await self.research_llm.acomplete(case_studies_query)
-
-            # Parse response into structured case studies
-            case_studies = {
-                "avnu": {
-                    "name": "AVNU",
-                    "category": "DeFi Aggregator",
-                    "key_innovation": "Gasless trading with Paymaster",
-                    "insights": response.text[
-                        : len(response.text) // 2
-                    ],  # First half for AVNU
-                    "applicable_lessons": [],
-                },
-                "ekubo": {
-                    "name": "Ekubo",
-                    "category": "AMM/DEX",
-                    "key_innovation": "Advanced capital efficiency + High Float Low FDV tokenomics",
-                    "insights": response.text[
-                        len(response.text) // 2 :
-                    ],  # Second half for Ekubo
-                    "applicable_lessons": [],
-                },
-            }
-
-            return case_studies
-
-        except Exception as e:
-            return {"error": f"Unable to fetch case studies: {str(e)}"}
-
----
-
 ## FILE: backend/src/__init__.py
 # This file makes the src directory a Python package
 
@@ -1419,7 +1174,7 @@ import chromadb
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_socketio import SocketManager
+import socketio
 from llama_index.core import Settings, SimpleDirectoryReader, VectorStoreIndex
 # --- 1. IMPORT THE SPECIFIC CHAT ENGINE CLASS ---
 from llama_index.core.chat_engine import ContextChatEngine
@@ -1432,8 +1187,6 @@ from pydantic import BaseModel
 
 from .adaptive_questioning import AdaptiveQuestionEngine
 from .analysis_engine import PitchDeckAnalyzer
-from .competitor_analysis import CompetitorAnalyzer
-from .ecosystem_research import StarknetEcosystemResearcher
 from .prompts import AgentType, get_prompt
 
 # --- Load Environment and Configure Settings ---
@@ -1506,8 +1259,6 @@ chat_engines = {}
 
 # --- Analysis and Research Services ---
 analyzer = PitchDeckAnalyzer()
-researcher = StarknetEcosystemResearcher()
-competitor_analyzer = CompetitorAnalyzer()
 question_engine = AdaptiveQuestionEngine()
 
 # --- Rate Limiting ---
@@ -1519,7 +1270,7 @@ RATE_LIMIT_REQUESTS = 60  # requests per minute for general endpoints
 RATE_LIMIT_WINDOW = 60  # seconds
 
 # Expensive operations rate limits (AI-powered features)
-EXPENSIVE_RATE_LIMIT = 10  # requests per minute for AI operations
+EXPENSIVE_RATE_LIMIT = 30  # requests per minute for AI operations (increased for better UX)
 EXPENSIVE_RATE_WINDOW = 60  # seconds
 
 
@@ -1537,9 +1288,12 @@ def check_rate_limit(client_ip: str, is_expensive: bool = False):
 
         # Check expensive operation rate limit
         if len(expensive_request_counts[client_ip]) >= EXPENSIVE_RATE_LIMIT:
+            wait_time = EXPENSIVE_RATE_WINDOW - (now - min(expensive_request_counts[client_ip]))
+            logger.warning(f"Rate limit exceeded for {client_ip}: {len(expensive_request_counts[client_ip])}/{EXPENSIVE_RATE_LIMIT} requests")
             raise HTTPException(
                 status_code=429,
-                detail=f"AI operation rate limit exceeded. Please wait before trying again. Limit: {EXPENSIVE_RATE_LIMIT} requests per minute.",
+                detail=f"Too many AI requests. Please wait {int(wait_time)} seconds before trying again. Current: {len(expensive_request_counts[client_ip])}/{EXPENSIVE_RATE_LIMIT} requests per minute.",
+                headers={"Retry-After": str(int(wait_time))}
             )
 
         # Add current expensive request
@@ -1578,31 +1332,38 @@ allowed_origins = [FRONTEND_URL]
 if PRODUCTION_FRONTEND:
     allowed_origins.append(PRODUCTION_FRONTEND)
 
+# IMPORTANT: Add CORS middleware BEFORE SocketManager to ensure OPTIONS requests work
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Be more specific
-    allow_headers=["Content-Type", "Authorization", "Accept"],  # Be more specific
+    allow_methods=["*"],  # Allow all methods including OPTIONS
+    allow_headers=["*"],  # Allow all headers for preflight requests
 )
 
-# Add Socket.io setup after FastAPI app initialization
-socket_manager = SocketManager(app=app, cors_allowed_origins=[])
+# Create Socket.IO server with CORS support
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins=allowed_origins
+)
 
-@socket_manager.on('connect')
+# Wrap FastAPI app with Socket.IO
+socket_app = socketio.ASGIApp(sio, app)
+
+@sio.event
 async def connect(sid, environ):
     logger.info(f"Client {sid} connected")
 
-@socket_manager.on('disconnect')
+@sio.event
 async def disconnect(sid):
     logger.info(f"Client {sid} disconnected")
 
-@socket_manager.on('user_typing')
-async def handle_typing(sid, data):
+@sio.event
+async def user_typing(sid, data):
     founder_id = data.get('founderId')
-    await socket_manager.emit('user_typing', 
-                            {'userId': data.get('userId')}, 
-                            room=founder_id)
+    await sio.emit('user_typing', 
+                   {'userId': data.get('userId')}, 
+                   room=founder_id)
 
 
 # --- Data Models ---
@@ -1619,11 +1380,7 @@ class ChatResponse(BaseModel):
 class UploadResponse(BaseModel):
     message: str
     filename: str
-
-
-class CompetitorAnalysisRequest(BaseModel):
-    description: str
-    starknet_focus: bool = True
+    analysis: Optional[Dict[str, Any]] = None  # Contains analysis results for both agents
 
 
 class AdaptiveQuestionsRequest(BaseModel):
@@ -1691,9 +1448,41 @@ async def upload_document(
         documents = reader.load_data()
         index.insert_nodes(documents)
 
+        # 🔥 Automatically analyze the newly uploaded document for both agent types!
+        analysis = None
+        try:
+            document_text = " ".join(doc.text for doc in documents)
+            
+            # Run analysis for both agent types
+            analysis_pm = analyzer.analyze_document_gaps(
+                document_text, AgentType("Product PM")
+            )
+            analysis_vc = analyzer.analyze_document_gaps(
+                document_text, AgentType("Shark VC")
+            )
+            
+            analysis = {
+                "Product PM": analysis_pm.dict() if hasattr(analysis_pm, 'dict') else analysis_pm,
+                "Shark VC": analysis_vc.dict() if hasattr(analysis_vc, 'dict') else analysis_vc,
+            }
+            
+            # Notify connected clients via Socket.IO
+            await sio.emit("analysis_ready", {
+                "founder_id": founder_id,
+                "analysis": analysis,
+                "filename": safe_filename
+            })
+            
+            logger.info(f"Auto-analysis completed for {founder_id}")
+            
+        except Exception as analysis_error:
+            logger.error(f"Auto-analysis on upload failed for {founder_id}: {analysis_error}", exc_info=True)
+            analysis = None
+
         return {
-            "message": f"Document indexed successfully for founder {founder_id}",
+            "message": f"Document indexed and analyzed successfully for founder {founder_id}",
             "filename": safe_filename,
+            "analysis": analysis,
         }
 
     except Exception as e:
@@ -1808,78 +1597,13 @@ async def analyze_pitch_deck(
         raise HTTPException(status_code=500, detail="Failed to analyze documents")
 
 
-@app.get("/ecosystem-updates/{founder_space}")
-async def get_ecosystem_updates(founder_space: str, request: Request = None):
-    # Rate limiting for AI research operations
-    if request:
-        client_ip = request.client.host
-        check_rate_limit(client_ip, is_expensive=True)
-
-    # Input validation and sanitization
-    if not founder_space or len(founder_space) > 200:
-        raise HTTPException(status_code=400, detail="Invalid founder space parameter")
-
-    # Sanitize input to prevent injection attacks
-    sanitized_space = "".join(
-        c for c in founder_space if c.isalnum() or c in (" ", "-", "_")
-    ).strip()
-    if not sanitized_space:
-        raise HTTPException(status_code=400, detail="Invalid founder space format")
-
-    try:
-        updates = await researcher.research_ecosystem_updates(sanitized_space)
-        return updates
-    except Exception as e:
-        logger.error(f"Ecosystem research error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to fetch ecosystem updates")
 
 
-@app.get("/case-studies")
-async def get_case_studies(request: Request = None):
-    # Rate limiting for AI research operations
-    if request:
-        client_ip = request.client.host
-        check_rate_limit(client_ip, is_expensive=True)
-
-    try:
-        case_studies = await researcher.research_successful_cases()
-        return case_studies
-    except Exception as e:
-        logger.error(f"Case studies error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to fetch case studies")
 
 
-@app.post("/competitor-analysis")
-async def analyze_competitors(request: CompetitorAnalysisRequest, req: Request = None):
-    # Rate limiting for expensive AI operations
-    if req:
-        client_ip = req.client.host
-        check_rate_limit(client_ip, is_expensive=True)
 
-    # Remove the validation code since Pydantic handles it now
-    # Just use the validated data
-    project_description = request.description
-    starknet_focus = request.starknet_focus
 
-    # Validate project description length
-    if len(project_description) < 10:
-        raise HTTPException(
-            status_code=400, detail="Project description must be at least 10 characters"
-        )
 
-    if len(project_description) > 2000:
-        raise HTTPException(
-            status_code=400, detail="Project description too long (max 2000 characters)"
-        )
-
-    try:
-        analysis = await competitor_analyzer.analyze_competitors(
-            project_description.strip(), starknet_focus
-        )
-        return analysis
-    except Exception as e:
-        logger.error(f"Competitor analysis error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to analyze competitors")
 
 
 @app.post("/adaptive-questions")
@@ -1926,6 +1650,18 @@ async def get_adaptive_questions(request: AdaptiveQuestionsRequest, req: Request
 @app.get("/")
 def read_root():
     return {"status": "Starknet VC Co-pilot API is running"}
+
+
+# Export the Socket.IO wrapped app for both REST and WebSocket support
+# This preserves all FastAPI middleware (including CORS) and adds Socket.IO functionality
+if __name__ != "__main__":
+    # For production (uvicorn/gunicorn), export the Socket.IO wrapped FastAPI app
+    app = socket_app
+
+# For local development (CLI run)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("src.main:socket_app", host="0.0.0.0", port=8000, reload=True)
 
 ---
 
@@ -2826,9 +2562,10 @@ export { handler as GET, handler as POST }
 ## FILE: frontend/app/page.tsx
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { io, Socket } from 'socket.io-client'
+import confetti from 'canvas-confetti'
 import { supabase, type ChatMessage } from '@/lib/supabase'
 import posthog from 'posthog-js'
 import Header from '@/components/header'
@@ -2838,8 +2575,6 @@ import MessageInput from '@/components/message-input'
 import ProgressIndicators from '@/components/progress-indicators'
 import OnboardingGuide from '@/components/onboarding-guide'
 import SmartSuggestions from '@/components/smart-suggestions'
-import EcosystemUpdates from '@/components/ecosystem-updates'
-import CompetitorAnalysis from '@/components/competitor-analysis'
 import AdaptiveQuestions from '@/components/adaptive-questions'
 import FeedbackModal from '@/components/feedback-modal'
 import { Card } from '@/app/components/ui/card'
@@ -2852,6 +2587,31 @@ import { analyzeCompletedTopics } from '@/lib/topic-analyzer'
 interface Message {
   role: 'user' | 'assistant'
   content: string
+}
+
+// Helper function to format analysis results into a readable message
+const formatAnalysisMessage = (analysis: any, agent: string): string => {
+  const sections = []
+  
+  if (analysis.missing_sections && analysis.missing_sections.length > 0) {
+    sections.push(`**Missing Sections Identified:**\n${analysis.missing_sections.map((section: string) => `• ${section}`).join('\n')}`)
+  }
+  
+  if (analysis.smart_suggestions && analysis.smart_suggestions.length > 0) {
+    sections.push(`**Smart Suggestions:**\n${analysis.smart_suggestions.map((suggestion: any) => `• ${suggestion.title || suggestion}`).join('\n')}`)
+  }
+  
+  if (analysis.score) {
+    sections.push(`**Overall Score:** ${analysis.score}/100`)
+  }
+  
+  const intro = agent === 'Product PM' 
+    ? "I've analyzed your document from a product perspective. Here's what I found:"
+    : "I've reviewed your pitch deck like a VC would. Here are my insights:"
+  
+  return sections.length > 0 
+    ? `${intro}\n\n${sections.join('\n\n')}\n\nWhat would you like to explore further?`
+    : `${intro}\n\nYour document looks comprehensive! What specific aspects would you like to discuss?`
 }
 
 export default function Home() {
@@ -2871,6 +2631,11 @@ export default function Home() {
 
   const founderId = session?.user?.email || "anonymous"
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+  // Memoize missingSections to prevent unnecessary API calls
+  const missingSections = useMemo(() => {
+    return completedTopics.length < 5 ? ['team', 'market', 'traction'] : []
+  }, [completedTopics.length]) // Only recalculate when the length changes
 
   // Analyze messages for completed topics with toast notifications
   useEffect(() => {
@@ -2968,6 +2733,44 @@ export default function Home() {
       if (data.userId !== session.user.id) {
         setIsOtherUserTyping(data.userId)
         setTimeout(() => setIsOtherUserTyping(null), 3000)
+      }
+    })
+
+    // 🎉 Real-time analysis completion handler
+    socket.current.on('analysis_ready', (data: { 
+      founder_id: string
+      analysis: any
+      filename: string 
+         }) => {
+       if (data.founder_id === founderId) {
+         // 🎊 Real-time confetti celebration!
+         confetti({
+           particleCount: 150,
+           spread: 90,
+           origin: { y: 0.6 }
+         })
+         
+         // Show celebration toast for real-time update
+         toast({
+           title: "🚀 Analysis Complete!",
+           description: `Your document "${data.filename}" has been fully analyzed!`,
+           variant: "success" as any,
+         })
+        
+        // Update analysis results for current agent
+        const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
+        if (currentAnalysis) {
+          const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: analysisMessage
+          }])
+          
+          // Auto-expand analysis sections
+          if (currentAnalysis.missing_sections) {
+            setCompletedTopics(prev => [...prev, ...currentAnalysis.missing_sections.slice(0, 3)])
+          }
+        }
       }
     })
 
@@ -3084,19 +2887,59 @@ export default function Home() {
       
       if (!response.ok) throw new Error('Upload failed')
       
-      const data = await response.json() as { filename: string }
-      toast({
-        title: "Success",
-        description: `${data.filename} uploaded successfully!`,
-        variant: "success" as any,
-      })
+      const data = await response.json() as { 
+        filename: string
+        analysis?: {
+          'Product PM'?: any
+          'Shark VC'?: any
+        }
+      }
       
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: selectedAgent === 'Product PM'
-          ? `I've received your document: ${data.filename}. Let me analyze it through a product lens. What specific product questions should I focus on?`
-          : `I've received your pitch deck: ${data.filename}. Let me review it like a VC would. What specific aspects would you like me to focus on?`
-      }])
+             // 🎉 MAGICAL ANALYSIS RESULTS!
+       if (data.analysis) {
+         // 🎊 CONFETTI CELEBRATION!
+         confetti({
+           particleCount: 100,
+           spread: 70,
+           origin: { y: 0.6 }
+         })
+         
+         // Show confetti/celebration toast
+         toast({
+           title: "🎉 Document Analyzed!",
+           description: "See tailored suggestions below. Your insights are ready!",
+           variant: "success" as any,
+         })
+        
+                 // Auto-display analysis results for current agent
+         const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
+        if (currentAnalysis) {
+          const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: analysisMessage
+          }])
+          
+          // Auto-expand analysis sections by setting completed topics
+          if (currentAnalysis.missing_sections) {
+            setCompletedTopics(prev => [...prev, ...currentAnalysis.missing_sections.slice(0, 3)])
+          }
+        }
+      } else {
+        // Fallback if analysis failed
+        toast({
+          title: "Document Uploaded",
+          description: `${data.filename} uploaded successfully! Analysis in progress...`,
+          variant: "success" as any,
+        })
+        
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: selectedAgent === 'Product PM'
+            ? `I've received your document: ${data.filename}. Let me analyze it through a product lens. What specific product questions should I focus on?`
+            : `I've received your pitch deck: ${data.filename}. Let me review it like a VC would. What specific aspects would you like me to focus on?`
+        }])
+      }
     } catch (error) {
       console.error('Error uploading file:', error)
       toast({
@@ -3186,17 +3029,11 @@ export default function Home() {
               />
               
               <AdaptiveQuestions
-                missingSections={completedTopics.length < 5 ? ['team', 'market', 'traction'] : []}
+                missingSections={missingSections}
                 selectedAgent={selectedAgent}
                 founderContext="starknet founder"
                 onQuestionSelect={(question) => sendMessage(question)}
               />
-              
-              <EcosystemUpdates 
-                founderSpace={selectedAgent === 'Product PM' ? 'product development' : 'fundraising'}
-              />
-              
-              <CompetitorAnalysis />
             </div>
           )}
         </div>
@@ -3666,157 +3503,6 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
 } 
 ---
 
-## FILE: frontend/components/ecosystem-updates.tsx
-"use client"
-
-import { useState, useEffect } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card'
-import { Badge } from '@/app/components/ui/badge'
-import { Button } from '@/app/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
-import { ExternalLink, TrendingUp, Building, Calendar } from 'lucide-react'
-
-interface EcosystemUpdatesProps {
-  founderSpace: string
-}
-
-export default function EcosystemUpdates({ founderSpace }: EcosystemUpdatesProps) {
-  const [updates, setUpdates] = useState<any>(null)
-  const [caseStudies, setCaseStudies] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      try {
-        const [updatesRes, casesRes] = await Promise.all([
-          fetch(`${apiUrl}/ecosystem-updates/${encodeURIComponent(founderSpace)}`),
-          fetch(`${apiUrl}/case-studies`)
-        ])
-        
-        if (updatesRes.ok) {
-          setUpdates(await updatesRes.json())
-        }
-        if (casesRes.ok) {
-          setCaseStudies(await casesRes.json())
-        }
-      } catch (error) {
-        console.error('Failed to fetch ecosystem data:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    if (founderSpace) {
-      fetchData()
-    }
-  }, [founderSpace, apiUrl])
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-secondary rounded w-3/4"></div>
-            <div className="h-4 bg-secondary rounded w-1/2"></div>
-            <div className="h-4 bg-secondary rounded w-2/3"></div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          Starknet Ecosystem Intelligence
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="updates" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="updates">Latest Updates</TabsTrigger>
-            <TabsTrigger value="cases">Success Stories</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="updates" className="space-y-4">
-            {updates && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="gap-1">
-                    <Calendar className="h-3 w-3" />
-                    Recent developments in {founderSpace}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    Relevance: {updates.relevance_score}
-                  </span>
-                </div>
-                
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {updates.updates}
-                  </div>
-                </div>
-                
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground">
-                    Sources: {updates.sources}
-                  </p>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="cases" className="space-y-4">
-            {caseStudies && !caseStudies.error && (
-              <div className="space-y-6">
-                {Object.entries(caseStudies).map(([key, study]: [string, any]) => (
-                  <div key={key} className="border rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg">{study.name}</h3>
-                        <Badge variant="secondary">{study.category}</Badge>
-                      </div>
-                      <Building className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    
-                    <div className="mb-3">
-                      <p className="text-sm font-medium text-primary mb-1">Key Innovation:</p>
-                      <p className="text-sm text-muted-foreground">{study.key_innovation}</p>
-                    </div>
-                    
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <div className="text-sm leading-relaxed">
-                        {study.insights?.substring(0, 300)}...
-                      </div>
-                    </div>
-                    
-                    <Button variant="outline" size="sm" className="mt-3 gap-1">
-                      Read Full Case Study
-                      <ExternalLink className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {caseStudies?.error && (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Unable to load case studies at this time.</p>
-                <p className="text-xs text-muted-foreground mt-1">{caseStudies.error}</p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
-  )
-} 
----
-
 ## FILE: frontend/components/onboarding-guide.tsx
 "use client"
 
@@ -3951,196 +3637,14 @@ export const BrainIcon = ({ className }: { className?: string }) => (
 ) 
 ---
 
-## FILE: frontend/components/competitor-analysis.tsx
-"use client"
-
-import { useState } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card'
-import { Button } from '@/app/components/ui/button'
-import { Badge } from '@/app/components/ui/badge'
-import { Textarea } from '@/app/components/ui/textarea'
-import { Switch } from '@/app/components/ui/switch'
-import { Users, Target, Shield, TrendingUp, AlertTriangle } from 'lucide-react'
-
-export default function CompetitorAnalysis() {
-  const [description, setDescription] = useState('')
-  const [starknetFocus, setStarknetFocus] = useState(true)
-  const [analysis, setAnalysis] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-
-  const handleAnalyze = async () => {
-    if (!description.trim()) return
-
-    setIsLoading(true)
-    try {
-      const response = await fetch(`${apiUrl}/competitor-analysis`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: description,
-          starknet_focus: starknetFocus
-        })
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        setAnalysis(result)
-      }
-    } catch (error) {
-      console.error('Failed to analyze competitors:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  return (
-    <Card className="card-hover bg-gradient-to-br from-background to-secondary/20 border-border/50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
-          Competitor Analysis
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Describe your project/idea:
-            </label>
-            <Textarea
-              placeholder="E.g., A DeFi lending protocol that uses AI for risk assessment..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">
-              Focus on Starknet ecosystem
-            </label>
-            <Switch
-              checked={starknetFocus}
-              onCheckedChange={setStarknetFocus}
-            />
-          </div>
-
-          <Button 
-            onClick={handleAnalyze}
-            disabled={!description.trim() || isLoading}
-            className="w-full"
-          >
-            {isLoading ? 'Analyzing...' : 'Analyze Competitors'}
-          </Button>
-        </div>
-
-        {analysis && (
-          <div className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Target className="h-4 w-4 text-red-500" />
-                    <h3 className="font-semibold text-sm">Direct Competitors</h3>
-                  </div>
-                  {analysis.direct_competitors?.length > 0 ? (
-                    <div className="space-y-2">
-                      {analysis.direct_competitors.map((competitor: any, index: number) => (
-                        <div key={index} className="p-2 bg-secondary/30 rounded text-xs">
-                          <div className="font-medium">{competitor.name}</div>
-                          <div className="text-muted-foreground">{competitor.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Analysis includes direct competitor information
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Shield className="h-4 w-4 text-green-500" />
-                    <h3 className="font-semibold text-sm">Competitive Advantages</h3>
-                  </div>
-                  {analysis.competitive_advantages?.length > 0 ? (
-                    <div className="space-y-1">
-                      {analysis.competitive_advantages.map((advantage: string, index: number) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {advantage}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Analysis includes competitive positioning insights
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <TrendingUp className="h-4 w-4 text-blue-500" />
-                  <h3 className="font-semibold">Full Competitive Analysis</h3>
-                </div>
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {analysis.analysis}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {analysis.recommended_positioning && (
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-primary mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-sm mb-1">Strategic Positioning</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {analysis.recommended_positioning}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {analysis.error && (
-              <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-sm mb-1 text-red-700 dark:text-red-300">Analysis Error</h4>
-                    <p className="text-sm text-red-600 dark:text-red-400">
-                      {analysis.error}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-} 
----
-
 ## FILE: frontend/components/adaptive-questions.tsx
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card'
 import { Button } from '@/app/components/ui/button'
 import { Badge } from '@/app/components/ui/badge'
-import { MessageCircle, Send, ChevronRight } from 'lucide-react'
+import { MessageCircle, Send, ChevronRight, AlertTriangle } from 'lucide-react'
 
 interface AdaptiveQuestion {
   section: string
@@ -4165,38 +3669,133 @@ export default function AdaptiveQuestions({
   const [questions, setQuestions] = useState<AdaptiveQuestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [rateLimited, setRateLimited] = useState(false)
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  
+  // Debouncing and request deduplication
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const lastRequestPayloadRef = useRef<string>('')
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const fetchQuestions = async () => {
       if (missingSections.length === 0) return
 
-      setIsLoading(true)
-      try {
-        const response = await fetch(`${apiUrl}/adaptive-questions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            missing_sections: missingSections,
-            agent_type: selectedAgent,
-            founder_context: founderContext,
-            document_content: "" // Could be enhanced with actual document content
-          })
-        })
+      // Create request payload for comparison
+      const requestPayload = JSON.stringify({
+        missing_sections: missingSections,
+        agent_type: selectedAgent,
+        founder_context: founderContext,
+        document_content: ""
+      })
 
-        if (response.ok) {
-          const data = await response.json()
-          setQuestions(data.questions || [])
-        }
-      } catch (error) {
-        console.error('Failed to fetch adaptive questions:', error)
-      } finally {
-        setIsLoading(false)
+      // Skip if this is the same request as last time (deduplication)
+      if (requestPayload === lastRequestPayloadRef.current) {
+        return
       }
+
+      // Cancel any previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Clear any existing debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+
+      // Debounce the API call
+      debounceRef.current = setTimeout(async () => {
+        setIsLoading(true)
+        setError(null)
+        setRateLimited(false)
+
+        // Create new abort controller for this request
+        abortControllerRef.current = new AbortController()
+        
+        try {
+          const response = await fetch(`${apiUrl}/adaptive-questions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: requestPayload,
+            signal: abortControllerRef.current.signal
+          })
+
+          if (response.status === 429) {
+            setRateLimited(true)
+            setError('You\'re making requests too quickly. Please wait a few seconds and try again.')
+            return
+          }
+
+          if (response.ok) {
+            const data = await response.json()
+            setQuestions(data.questions || [])
+            lastRequestPayloadRef.current = requestPayload // Remember this successful request
+          } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            // Request was cancelled, this is normal
+            return
+          }
+          console.error('Failed to fetch adaptive questions:', error)
+          setError('Failed to load questions. Please try again.')
+        } finally {
+          setIsLoading(false)
+        }
+      }, 500) // 500ms debounce delay
     }
 
     fetchQuestions()
+
+    // Cleanup function
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
   }, [missingSections, selectedAgent, founderContext, apiUrl])
+
+  // Auto-retry after rate limit cooldown
+  useEffect(() => {
+    if (rateLimited) {
+      const retryTimer = setTimeout(() => {
+        setRateLimited(false)
+        setError(null)
+        // Trigger a refetch by clearing the last payload
+        lastRequestPayloadRef.current = ''
+      }, 30000) // Retry after 30 seconds
+
+      return () => clearTimeout(retryTimer)
+    }
+  }, [rateLimited])
+
+  // Show error state
+  if (error) {
+    return (
+      <Card className="mb-4 border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              {rateLimited ? 'Rate Limited' : 'Error Loading Questions'}
+            </span>
+          </div>
+          <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">{error}</p>
+          {rateLimited && (
+            <p className="text-xs text-orange-500 dark:text-orange-500 mt-2">
+              Retrying automatically in a few seconds...
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (isLoading || questions.length === 0) return null
 
@@ -4735,7 +4334,11 @@ export default function SmartSuggestions({ founderId, selectedAgent, onActionCli
     const fetchAnalysis = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch(`${apiUrl}/analyze/${founderId}?agent_type=${selectedAgent}`)
+        const response = await fetch(`${apiUrl}/analyze/${founderId}?agent_type=${selectedAgent}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // No body is needed for this endpoint, but POST is required
+        })
         if (response.ok) {
           const data = await response.json()
           setAnalysis(data)
@@ -4924,10 +4527,24 @@ export function analyzeCompletedTopics(
 ## FILE: frontend/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Verification logging for debugging
+console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing')
+console.log('Supabase Anon Key:', supabaseAnonKey ? 'Set' : 'Missing')
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing required Supabase environment variables')
+  console.error('Please check your .env.local file has:')
+  console.error('- NEXT_PUBLIC_SUPABASE_URL')
+  console.error('- NEXT_PUBLIC_SUPABASE_ANON_KEY')
+}
+
+export const supabase = createClient(
+  supabaseUrl || 'placeholder-url', 
+  supabaseAnonKey || 'placeholder-key'
+)
 
 // Types for our tables
 export interface ChatMessage {
