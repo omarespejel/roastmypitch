@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { io, Socket } from 'socket.io-client'
+import confetti from 'canvas-confetti'
 import { supabase, type ChatMessage } from '@/lib/supabase'
 import posthog from 'posthog-js'
 import Header from '@/components/header'
@@ -26,6 +27,31 @@ interface Message {
   content: string
 }
 
+// Helper function to format analysis results into a readable message
+const formatAnalysisMessage = (analysis: any, agent: string): string => {
+  const sections = []
+  
+  if (analysis.missing_sections && analysis.missing_sections.length > 0) {
+    sections.push(`**Missing Sections Identified:**\n${analysis.missing_sections.map((section: string) => `• ${section}`).join('\n')}`)
+  }
+  
+  if (analysis.smart_suggestions && analysis.smart_suggestions.length > 0) {
+    sections.push(`**Smart Suggestions:**\n${analysis.smart_suggestions.map((suggestion: any) => `• ${suggestion.title || suggestion}`).join('\n')}`)
+  }
+  
+  if (analysis.score) {
+    sections.push(`**Overall Score:** ${analysis.score}/100`)
+  }
+  
+  const intro = agent === 'Product PM' 
+    ? "I've analyzed your document from a product perspective. Here's what I found:"
+    : "I've reviewed your pitch deck like a VC would. Here are my insights:"
+  
+  return sections.length > 0 
+    ? `${intro}\n\n${sections.join('\n\n')}\n\nWhat would you like to explore further?`
+    : `${intro}\n\nYour document looks comprehensive! What specific aspects would you like to discuss?`
+}
+
 export default function Home() {
   const { data: session, status } = useSession()
   const { toast } = useToast()
@@ -43,6 +69,11 @@ export default function Home() {
 
   const founderId = session?.user?.email || "anonymous"
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+  // Memoize missingSections to prevent unnecessary API calls
+  const missingSections = useMemo(() => {
+    return completedTopics.length < 5 ? ['team', 'market', 'traction'] : []
+  }, [completedTopics.length]) // Only recalculate when the length changes
 
   // Analyze messages for completed topics with toast notifications
   useEffect(() => {
@@ -140,6 +171,44 @@ export default function Home() {
       if (data.userId !== session.user.id) {
         setIsOtherUserTyping(data.userId)
         setTimeout(() => setIsOtherUserTyping(null), 3000)
+      }
+    })
+
+    // 🎉 Real-time analysis completion handler
+    socket.current.on('analysis_ready', (data: { 
+      founder_id: string
+      analysis: any
+      filename: string 
+         }) => {
+       if (data.founder_id === founderId) {
+         // 🎊 Real-time confetti celebration!
+         confetti({
+           particleCount: 150,
+           spread: 90,
+           origin: { y: 0.6 }
+         })
+         
+         // Show celebration toast for real-time update
+         toast({
+           title: "🚀 Analysis Complete!",
+           description: `Your document "${data.filename}" has been fully analyzed!`,
+           variant: "success" as any,
+         })
+        
+        // Update analysis results for current agent
+        const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
+        if (currentAnalysis) {
+          const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: analysisMessage
+          }])
+          
+          // Auto-expand analysis sections
+          if (currentAnalysis.missing_sections) {
+            setCompletedTopics(prev => [...prev, ...currentAnalysis.missing_sections.slice(0, 3)])
+          }
+        }
       }
     })
 
@@ -256,19 +325,59 @@ export default function Home() {
       
       if (!response.ok) throw new Error('Upload failed')
       
-      const data = await response.json() as { filename: string }
-      toast({
-        title: "Success",
-        description: `${data.filename} uploaded successfully!`,
-        variant: "success" as any,
-      })
+      const data = await response.json() as { 
+        filename: string
+        analysis?: {
+          'Product PM'?: any
+          'Shark VC'?: any
+        }
+      }
       
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: selectedAgent === 'Product PM'
-          ? `I've received your document: ${data.filename}. Let me analyze it through a product lens. What specific product questions should I focus on?`
-          : `I've received your pitch deck: ${data.filename}. Let me review it like a VC would. What specific aspects would you like me to focus on?`
-      }])
+             // 🎉 MAGICAL ANALYSIS RESULTS!
+       if (data.analysis) {
+         // 🎊 CONFETTI CELEBRATION!
+         confetti({
+           particleCount: 100,
+           spread: 70,
+           origin: { y: 0.6 }
+         })
+         
+         // Show confetti/celebration toast
+         toast({
+           title: "🎉 Document Analyzed!",
+           description: "See tailored suggestions below. Your insights are ready!",
+           variant: "success" as any,
+         })
+        
+                 // Auto-display analysis results for current agent
+         const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
+        if (currentAnalysis) {
+          const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: analysisMessage
+          }])
+          
+          // Auto-expand analysis sections by setting completed topics
+          if (currentAnalysis.missing_sections) {
+            setCompletedTopics(prev => [...prev, ...currentAnalysis.missing_sections.slice(0, 3)])
+          }
+        }
+      } else {
+        // Fallback if analysis failed
+        toast({
+          title: "Document Uploaded",
+          description: `${data.filename} uploaded successfully! Analysis in progress...`,
+          variant: "success" as any,
+        })
+        
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: selectedAgent === 'Product PM'
+            ? `I've received your document: ${data.filename}. Let me analyze it through a product lens. What specific product questions should I focus on?`
+            : `I've received your pitch deck: ${data.filename}. Let me review it like a VC would. What specific aspects would you like me to focus on?`
+        }])
+      }
     } catch (error) {
       console.error('Error uploading file:', error)
       toast({
@@ -358,7 +467,7 @@ export default function Home() {
               />
               
               <AdaptiveQuestions
-                missingSections={completedTopics.length < 5 ? ['team', 'market', 'traction'] : []}
+                missingSections={missingSections}
                 selectedAgent={selectedAgent}
                 founderContext="starknet founder"
                 onQuestionSelect={(question) => sendMessage(question)}
