@@ -1,7 +1,10 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
+import { io, Socket } from 'socket.io-client'
+import { supabase, type ChatMessage } from '@/lib/supabase'
+import posthog from 'posthog-js'
 import Header from '@/components/header'
 import AgentSelector from '@/components/agent-selector'
 import ChatInterface from '@/components/chat-interface'
@@ -12,6 +15,7 @@ import SmartSuggestions from '@/components/smart-suggestions'
 import EcosystemUpdates from '@/components/ecosystem-updates'
 import CompetitorAnalysis from '@/components/competitor-analysis'
 import AdaptiveQuestions from '@/components/adaptive-questions'
+import FeedbackModal from '@/components/feedback-modal'
 import { Card } from '@/app/components/ui/card'
 import { useToast } from '@/app/hooks/use-toast'
 import { Button } from '@/app/components/ui/button'
@@ -32,6 +36,12 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [completedTopics, setCompletedTopics] = useState<string[]>([])
   const [showOnboarding, setShowOnboarding] = useState(true)
+  
+  // New state for Socket.io and feedback
+  const socket = useRef<Socket | null>(null)
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState<string | null>(null)
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [lastFeedbackCount, setLastFeedbackCount] = useState(0)
 
   const founderId = session?.user?.email || "anonymous"
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -79,6 +89,81 @@ export default function Home() {
     }
   }, [messages, selectedAgent, completedTopics, toast])
 
+  // Enhanced useEffect for Supabase and Socket.io integration
+  useEffect(() => {
+    if (!session) return
+
+    // Initialize Socket.io connection
+    socket.current = io(apiUrl, {
+      query: { founderId }
+    })
+
+    // Load messages from Supabase
+    const loadMessages = async () => {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('founder_id', founderId)
+        .eq('agent_type', selectedAgent)
+        .order('created_at', { ascending: true })
+
+      if (data && !error) {
+        setMessages(data.map(msg => ({ role: msg.role, content: msg.content })))
+      }
+    }
+
+    loadMessages()
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel(`chat:${founderId}:${selectedAgent}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `founder_id=eq.${founderId}`
+        },
+        (payload) => {
+          const newMessage = payload.new as ChatMessage
+          if (newMessage.agent_type === selectedAgent) {
+            setMessages(prev => [...prev, { 
+              role: newMessage.role, 
+              content: newMessage.content 
+            }])
+          }
+        }
+      )
+      .subscribe()
+
+    // Socket.io event handlers
+    socket.current.on('user_typing', (data: { userId: string }) => {
+      if (data.userId !== session.user.id) {
+        setIsOtherUserTyping(data.userId)
+        setTimeout(() => setIsOtherUserTyping(null), 3000)
+      }
+    })
+
+    return () => {
+      supabase.removeChannel(channel)
+      socket.current?.disconnect()
+    }
+  }, [founderId, selectedAgent, session, apiUrl])
+
+  // Feedback tracking useEffect
+  useEffect(() => {
+    const assistantMessageCount = messages.filter(m => m.role === 'assistant').length
+    
+    // Show feedback every 3 assistant messages
+    if (assistantMessageCount > 0 && 
+        assistantMessageCount % 3 === 0 && 
+        assistantMessageCount !== lastFeedbackCount) {
+      setShowFeedback(true)
+      setLastFeedbackCount(assistantMessageCount)
+    }
+  }, [messages, lastFeedbackCount])
+
   const handleAgentSelect = (agent: string) => {
     if (agent !== selectedAgent && messages.length > 0) {
       // Optionally clear messages when switching agents
@@ -114,20 +199,41 @@ export default function Home() {
     setIsLoading(true)
     
     try {
+      // Store user message in Supabase
+      await supabase.from('chat_messages').insert({
+        founder_id: founderId,
+        agent_type: selectedAgent,
+        role: 'user',
+        content: message
+      })
+
+      // Send to backend
       const response = await fetch(`${apiUrl}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           founder_id: founderId, 
           message,
-          agent_type: selectedAgent  // Add the selected agent type
+          agent_type: selectedAgent
         }),
       })
 
       if (!response.ok) throw new Error('Failed to send message')
       
       const data = await response.json() as { reply: string }
+      
+      // Store assistant response in Supabase
+      await supabase.from('chat_messages').insert({
+        founder_id: founderId,
+        agent_type: selectedAgent,
+        role: 'assistant',
+        content: data.reply
+      })
+
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+      
+      // Emit typing indicator via Socket.io
+      socket.current?.emit('stop_typing', { founderId })
     } catch (error) {
       console.error('Error sending message:', error)
       toast({
@@ -297,6 +403,38 @@ export default function Home() {
         onUploadFile={uploadFile}
         isLoading={isLoading}
         suggestedTopic={messages.length > 2 ? getNextSuggestedTopic() : undefined}
+      />
+      
+      <FeedbackModal
+        open={showFeedback}
+        onClose={() => setShowFeedback(false)}
+        onSubmit={async (feedback, rating) => {
+          try {
+            await supabase.from('feedback').insert({
+              founder_id: founderId,
+              content: feedback,
+              rating: rating,
+              agent_type: selectedAgent
+            })
+            
+            // Track with PostHog if initialized
+            if (typeof window !== 'undefined' && (window as any).posthog) {
+              posthog.capture('feedback_submitted', {
+                rating,
+                has_comment: feedback.length > 0,
+                agent_type: selectedAgent
+              })
+            }
+            
+            toast({
+              title: "Thanks for your feedback!",
+              description: "Your input helps us improve.",
+              variant: "success" as any,
+            })
+          } catch (error) {
+            console.error('Error submitting feedback:', error)
+          }
+        }}
       />
     </div>
   )

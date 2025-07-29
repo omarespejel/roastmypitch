@@ -11,6 +11,7 @@ You are an expert full-stack developer and software architect with deep expertis
 ├── README.md
 ├── SECURITY.md
 ├── backend
+│   ├── backend.log
 │   ├── chroma_db
 │   │   ├── 484c6b69-a1f9-47b3-b105-8215ed37cdf4
 │   │   │   ├── data_level0.bin
@@ -65,6 +66,7 @@ You are an expert full-stack developer and software architect with deep expertis
 │   │   ├── agent-selector.tsx
 │   │   ├── chat-interface.tsx
 │   │   ├── competitor-analysis.tsx
+│   │   ├── custom-icons.tsx
 │   │   ├── ecosystem-updates.tsx
 │   │   ├── header.tsx
 │   │   ├── message-input.tsx
@@ -84,10 +86,11 @@ You are an expert full-stack developer and software architect with deep expertis
 │   └── types
 │       └── next-auth.d.ts
 ├── generate-context.sh
-├── project-context-prompt-20250728-1757.txt
+├── project-context-prompt-20250729-2158.txt
+├── project-context-prompt-20250729-2200.txt
 └── render.yaml
 
-18 directories, 62 files
+18 directories, 65 files
 
 ## FILE: README.md
 # Starknet Founders Bot v2
@@ -305,23 +308,25 @@ requires-python = ">=3.8.1"
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "next": "14.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "next-auth": "^4.24.5",
     "@next-auth/prisma-adapter": "^1.0.7",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-slot": "^1.0.2",
-    "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-switch": "^1.0.3",
+    "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-toast": "^1.1.5",
+    "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "lucide-react": "^0.294.0",
+    "next": "14.0.0",
+    "next-auth": "^4.24.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20.8.10",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
@@ -607,26 +612,29 @@ Health check script for Render deployment verification
 
 import os
 import sys
-import requests
 import time
+
+import requests
+
 
 def check_environment():
     """Check that required environment variables are set"""
     required_vars = [
         "OPENROUTER_API_KEY",
     ]
-    
+
     missing_vars = []
     for var in required_vars:
         if not os.getenv(var):
             missing_vars.append(var)
-    
+
     if missing_vars:
         print(f"❌ Missing environment variables: {', '.join(missing_vars)}")
         return False
-    
+
     print("✅ All required environment variables are set")
     return True
+
 
 def check_api_health(base_url="http://localhost:8000"):
     """Check if the API is responding"""
@@ -642,20 +650,21 @@ def check_api_health(base_url="http://localhost:8000"):
         print(f"❌ API health check failed: {str(e)}")
         return False
 
+
 def main():
     """Main health check function"""
     print("🔍 Running deployment health checks...")
-    
+
     # Check environment variables
     env_ok = check_environment()
-    
+
     # Wait a moment for the server to start
     print("⏳ Waiting for server to start...")
     time.sleep(5)
-    
+
     # Check API health
     api_ok = check_api_health()
-    
+
     if env_ok and api_ok:
         print("🎉 All health checks passed!")
         sys.exit(0)
@@ -663,14 +672,18 @@ def main():
         print("❌ Some health checks failed")
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    main() 
+    main()
+
 ---
 
 ## FILE: backend/src/adaptive_questioning.py
-from typing import Dict, List, Optional
-from pydantic import BaseModel
 import json
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel
+
 
 class AdaptiveQuestionEngine:
     def __init__(self):
@@ -678,113 +691,164 @@ class AdaptiveQuestionEngine:
             "missing_team": [
                 "I notice your pitch doesn't mention the founding team. Can you tell me about your background and why you're uniquely positioned to solve this problem?",
                 "What's your team's 'earned secret' - the unique insight or experience that gives you an unfair advantage?",
-                "Who are the key team members and what relevant experience do they bring?"
+                "Who are the key team members and what relevant experience do they bring?",
             ],
             "unclear_market": [
                 "Your market size seems unclear. Can you break down your TAM, SAM, and target market with specific numbers?",
                 "How fast is your target market growing? What trends are driving this growth?",
-                "Who exactly is your ideal customer? Can you describe a specific use case?"
+                "Who exactly is your ideal customer? Can you describe a specific use case?",
             ],
             "weak_traction": [
                 "I don't see strong traction metrics. What evidence do you have of product-market fit?",
                 "What's your current user/revenue growth rate? What's driving that growth?",
-                "Can you share retention curves or usage metrics that show user engagement?"
+                "Can you share retention curves or usage metrics that show user engagement?",
             ],
             "missing_economics": [
                 "Your unit economics aren't clear. What's your customer acquisition cost (CAC) and lifetime value (LTV)?",
                 "How do you make money? What's your gross margin and path to profitability?",
-                "What are your key revenue drivers and how do they scale?"
+                "What are your key revenue drivers and how do they scale?",
             ],
             "undefined_problem": [
                 "The problem statement could be sharper. What specific workflow breaks without your solution?",
                 "How painful is this problem? What happens if customers don't solve it?",
-                "What alternatives do customers use today and why are they insufficient?"
+                "What alternatives do customers use today and why are they insufficient?",
             ],
             "vague_solution": [
                 "Your solution needs more specificity. What exactly does your product do?",
                 "What's your key differentiator? Why is your approach 10x better than alternatives?",
-                "Can you walk through the user experience step by step?"
+                "Can you walk through the user experience step by step?",
             ],
             "missing_persona": [
                 "Your user persona isn't clear. Who exactly are you building for?",
                 "What job is your user trying to get done? What's their current workflow?",
-                "Can you describe a day in the life of your target user?"
+                "Can you describe a day in the life of your target user?",
             ],
             "unclear_metrics": [
                 "What success metrics will prove your product is working?",
                 "How do you measure user engagement and value creation?",
-                "What are your key retention and conversion benchmarks?"
+                "What are your key retention and conversion benchmarks?",
             ],
             "missing_roadmap": [
                 "What are your next 3 major product milestones?",
                 "How do you prioritize features? What's your framework for product decisions?",
-                "What's your timeline for reaching key product-market fit indicators?"
-            ]
+                "What's your timeline for reaching key product-market fit indicators?",
+            ],
         }
 
-    def generate_adaptive_questions(self, missing_sections: List[str], agent_type: str, context: str = "") -> List[Dict]:
+    def generate_adaptive_questions(
+        self, missing_sections: List[str], agent_type: str, context: str = ""
+    ) -> List[Dict]:
         """Generate context-aware follow-up questions based on missing sections"""
-        
+
         questions = []
         question_count = 0
         max_questions = 3  # Limit to avoid overwhelming
-        
+
         # Prioritize questions based on agent type
         if agent_type == "Shark VC":
-            priority_order = ["missing_team", "unclear_market", "weak_traction", "missing_economics"]
+            priority_order = [
+                "missing_team",
+                "unclear_market",
+                "weak_traction",
+                "missing_economics",
+            ]
         else:  # Product PM
-            priority_order = ["undefined_problem", "vague_solution", "missing_persona", "unclear_metrics", "missing_roadmap"]
-        
+            priority_order = [
+                "undefined_problem",
+                "vague_solution",
+                "missing_persona",
+                "unclear_metrics",
+                "missing_roadmap",
+            ]
+
         # Map missing sections to question templates
         section_to_template = {
             "team": "missing_team",
-            "market": "unclear_market", 
+            "market": "unclear_market",
             "traction": "weak_traction",
             "economics": "missing_economics",
             "problem": "undefined_problem",
             "solution": "vague_solution",
             "persona": "missing_persona",
             "metrics": "unclear_metrics",
-            "roadmap": "missing_roadmap"
+            "roadmap": "missing_roadmap",
         }
-        
+
         for section in missing_sections:
             template_key = section_to_template.get(section)
-            if template_key and template_key in priority_order and question_count < max_questions:
+            if (
+                template_key
+                and template_key in priority_order
+                and question_count < max_questions
+            ):
                 template_questions = self.question_templates.get(template_key, [])
                 if template_questions:
-                    questions.append({
-                        "section": section,
-                        "question": template_questions[0],  # Use first question as primary
-                        "alternatives": template_questions[1:],  # Store alternatives
-                        "priority": len(priority_order) - priority_order.index(template_key) if template_key in priority_order else 0  # Higher number = higher priority
-                    })
+                    questions.append(
+                        {
+                            "section": section,
+                            "question": template_questions[
+                                0
+                            ],  # Use first question as primary
+                            "alternatives": template_questions[
+                                1:
+                            ],  # Store alternatives
+                            "priority": len(priority_order)
+                            - priority_order.index(template_key)
+                            if template_key in priority_order
+                            else 0,  # Higher number = higher priority
+                        }
+                    )
                     question_count += 1
-        
+
         return sorted(questions, key=lambda x: x["priority"], reverse=True)
 
-    def contextualize_question(self, base_question: str, founder_context: str, document_content: str) -> str:
+    def contextualize_question(
+        self, base_question: str, founder_context: str, document_content: str
+    ) -> str:
         """Personalize questions based on founder's specific context and uploaded documents"""
-        
+
         # Simple contextualization - in production, use LLM for more sophisticated personalization
-        if "fintech" in founder_context.lower() or "finance" in document_content.lower():
-            base_question = base_question.replace("customers", "users or financial institutions")
-        elif "defi" in founder_context.lower() or "protocol" in document_content.lower():
-            base_question = base_question.replace("customers", "users and liquidity providers")
+        if (
+            "fintech" in founder_context.lower()
+            or "finance" in document_content.lower()
+        ):
+            base_question = base_question.replace(
+                "customers", "users or financial institutions"
+            )
+        elif (
+            "defi" in founder_context.lower() or "protocol" in document_content.lower()
+        ):
+            base_question = base_question.replace(
+                "customers", "users and liquidity providers"
+            )
         elif "gaming" in founder_context.lower() or "game" in document_content.lower():
-            base_question = base_question.replace("customers", "players and game developers")
-        elif "ai" in founder_context.lower() or "artificial intelligence" in document_content.lower():
-            base_question = base_question.replace("customers", "AI users and enterprises")
-        elif "starknet" in founder_context.lower() or "cairo" in document_content.lower():
-            base_question = base_question.replace("customers", "developers and protocols")
-        
-        return base_question 
+            base_question = base_question.replace(
+                "customers", "players and game developers"
+            )
+        elif (
+            "ai" in founder_context.lower()
+            or "artificial intelligence" in document_content.lower()
+        ):
+            base_question = base_question.replace(
+                "customers", "AI users and enterprises"
+            )
+        elif (
+            "starknet" in founder_context.lower() or "cairo" in document_content.lower()
+        ):
+            base_question = base_question.replace(
+                "customers", "developers and protocols"
+            )
+
+        return base_question
+
 ---
 
 ## FILE: backend/src/competitor_analysis.py
-from typing import Dict, List
-from llama_index.llms.openai_like import OpenAILike
 import os
+from typing import Dict, List
+
+from llama_index.llms.openai_like import OpenAILike
+
 
 class CompetitorAnalyzer:
     def __init__(self):
@@ -794,14 +858,20 @@ class CompetitorAnalyzer:
             model="perplexity/sonar-pro",
             is_chat_model=True,
             context_window=200000,
-            max_tokens=1000
+            max_tokens=1000,
         )
 
-    async def analyze_competitors(self, project_description: str, starknet_focus: bool = True) -> Dict:
+    async def analyze_competitors(
+        self, project_description: str, starknet_focus: bool = True
+    ) -> Dict:
         """Analyze competitors for a given project in the Starknet ecosystem"""
-        
-        scope = "Starknet ecosystem and broader blockchain/DeFi space" if starknet_focus else "blockchain and traditional tech space"
-        
+
+        scope = (
+            "Starknet ecosystem and broader blockchain/DeFi space"
+            if starknet_focus
+            else "blockchain and traditional tech space"
+        )
+
         analysis_query = f"""
         Analyze competitors for this project: {project_description}
         
@@ -831,18 +901,22 @@ class CompetitorAnalyzer:
         
         Be specific with project names, metrics, and actionable insights. Focus on recent developments and current market dynamics.
         """
-        
+
         try:
             response = await self.analysis_llm.acomplete(analysis_query)
-            
+
             # Parse and structure the analysis
             return {
                 "analysis": response.text,
-                "direct_competitors": self._extract_competitors(response.text, "direct"),
-                "indirect_competitors": self._extract_competitors(response.text, "indirect"),
+                "direct_competitors": self._extract_competitors(
+                    response.text, "direct"
+                ),
+                "indirect_competitors": self._extract_competitors(
+                    response.text, "indirect"
+                ),
                 "competitive_advantages": self._extract_advantages(response.text),
                 "recommended_positioning": self._extract_positioning(response.text),
-                "timestamp": "current"
+                "timestamp": "current",
             }
         except Exception as e:
             return {
@@ -851,57 +925,65 @@ class CompetitorAnalyzer:
                 "direct_competitors": [],
                 "indirect_competitors": [],
                 "competitive_advantages": [],
-                "recommended_positioning": ""
+                "recommended_positioning": "",
             }
 
     def _extract_competitors(self, text: str, competitor_type: str) -> List[Dict]:
         # Simple extraction logic - in production, use more sophisticated NLP
         competitors = []
-        lines = text.split('\n')
-        
+        lines = text.split("\n")
+
         # Look for competitor mentions
         for line in lines:
-            if any(word in line.lower() for word in ['competitor', 'alternative', 'project']):
-                if '-' in line or '•' in line:
+            if any(
+                word in line.lower()
+                for word in ["competitor", "alternative", "project"]
+            ):
+                if "-" in line or "•" in line:
                     # Extract project name (first part before description)
-                    parts = line.strip(' -•').split(':')
+                    parts = line.strip(" -•").split(":")
                     if len(parts) >= 2:
-                        competitors.append({
-                            'name': parts[0].strip(),
-                            'description': parts[1].strip()
-                        })
-        
+                        competitors.append(
+                            {"name": parts[0].strip(), "description": parts[1].strip()}
+                        )
+
         return competitors[:5]  # Limit to top 5
 
     def _extract_advantages(self, text: str) -> List[str]:
         # Extract competitive advantages
         advantages = []
-        lines = text.split('\n')
-        
+        lines = text.split("\n")
+
         for line in lines:
-            if any(phrase in line.lower() for phrase in ['advantage', 'strength', 'benefit', 'moat']):
-                if '-' in line or '•' in line:
-                    advantages.append(line.strip(' -•').strip())
-        
+            if any(
+                phrase in line.lower()
+                for phrase in ["advantage", "strength", "benefit", "moat"]
+            ):
+                if "-" in line or "•" in line:
+                    advantages.append(line.strip(" -•").strip())
+
         return advantages[:5]  # Limit to top 5
 
     def _extract_positioning(self, text: str) -> str:
         # Extract positioning recommendations
-        positioning_keywords = ['positioning', 'strategy', 'differentiation', 'focus']
-        lines = text.split('\n')
-        
+        positioning_keywords = ["positioning", "strategy", "differentiation", "focus"]
+        lines = text.split("\n")
+
         for line in lines:
             if any(keyword in line.lower() for keyword in positioning_keywords):
                 return line.strip()
-        
-        return "Focus on unique Starknet advantages and ecosystem synergies" 
+
+        return "Focus on unique Starknet advantages and ecosystem synergies"
+
 ---
 
 ## FILE: backend/src/ecosystem_research.py
 import asyncio
-from typing import Dict, List, Optional
-from llama_index.llms.openai_like import OpenAILike
 import os
+from typing import Dict, List, Optional
+
+from llama_index.llms.openai_like import OpenAILike
+
 
 class StarknetEcosystemResearcher:
     def __init__(self):
@@ -911,12 +993,12 @@ class StarknetEcosystemResearcher:
             model="perplexity/sonar-pro",
             is_chat_model=True,
             context_window=200000,
-            max_tokens=800
+            max_tokens=800,
         )
 
     async def research_ecosystem_updates(self, founder_space: str) -> Dict[str, any]:
         """Research latest Starknet ecosystem developments relevant to founder's space"""
-        
+
         research_query = f"""
         Research the latest Starknet ecosystem developments (last 3 months) specifically relevant to {founder_space}. 
         Focus on:
@@ -929,26 +1011,26 @@ class StarknetEcosystemResearcher:
         Prioritize information from official Starknet channels, Twitter updates, and ecosystem announcements.
         Provide specific dates, amounts, and actionable insights for founders building in this space.
         """
-        
+
         try:
             response = await self.research_llm.acomplete(research_query)
             return {
                 "updates": response.text,
                 "timestamp": "recent",
                 "relevance_score": "high",
-                "sources": "Starknet ecosystem, Twitter, official announcements"
+                "sources": "Starknet ecosystem, Twitter, official announcements",
             }
         except Exception as e:
             return {
                 "updates": f"Unable to fetch latest updates: {str(e)}",
                 "timestamp": "error",
                 "relevance_score": "unknown",
-                "sources": "error"
+                "sources": "error",
             }
 
     async def research_successful_cases(self) -> Dict[str, List[Dict]]:
         """Research AVNU and Ekubo case studies"""
-        
+
         case_studies_query = """
         Provide detailed case studies for these successful Starknet projects:
         
@@ -969,38 +1051,42 @@ class StarknetEcosystemResearcher:
         Focus on actionable insights and specific strategies that other Starknet founders can learn from.
         Include recent developments and current status of both projects.
         """
-        
+
         try:
             response = await self.research_llm.acomplete(case_studies_query)
-            
+
             # Parse response into structured case studies
             case_studies = {
                 "avnu": {
                     "name": "AVNU",
                     "category": "DeFi Aggregator",
                     "key_innovation": "Gasless trading with Paymaster",
-                    "insights": response.text[:len(response.text)//2],  # First half for AVNU
-                    "applicable_lessons": []
+                    "insights": response.text[
+                        : len(response.text) // 2
+                    ],  # First half for AVNU
+                    "applicable_lessons": [],
                 },
                 "ekubo": {
-                    "name": "Ekubo", 
+                    "name": "Ekubo",
                     "category": "AMM/DEX",
                     "key_innovation": "Advanced capital efficiency + High Float Low FDV tokenomics",
-                    "insights": response.text[len(response.text)//2:],  # Second half for Ekubo
-                    "applicable_lessons": []
-                }
+                    "insights": response.text[
+                        len(response.text) // 2 :
+                    ],  # Second half for Ekubo
+                    "applicable_lessons": [],
+                },
             }
-            
+
             return case_studies
-            
+
         except Exception as e:
-            return {
-                "error": f"Unable to fetch case studies: {str(e)}"
-            } 
+            return {"error": f"Unable to fetch case studies: {str(e)}"}
+
 ---
 
 ## FILE: backend/src/__init__.py
-# This file makes the src directory a Python package 
+# This file makes the src directory a Python package
+
 ---
 
 ## FILE: backend/src/prompts.py
@@ -1010,9 +1096,11 @@ Persona prompts for different VC/PM personalities
 
 from enum import Enum
 
+
 class AgentType(Enum):
     SHARK_VC = "Shark VC"
     PRODUCT_PM = "Product PM"
+
 
 SHARK_VC_PROMPT = """
 You are a top-tier venture capitalist - a blend of partners from Sequoia, a16z, and Y Combinator. 
@@ -1083,6 +1171,7 @@ Remember: Good PM = relentless prioritization + rapid learning.
 Cite real examples (Airbnb, Stripe, Notion) when relevant. Be specific.
 """
 
+
 def get_prompt(agent_type: AgentType) -> str:
     """Get the appropriate prompt based on agent type"""
     if agent_type == AgentType.SHARK_VC:
@@ -1090,13 +1179,17 @@ def get_prompt(agent_type: AgentType) -> str:
     elif agent_type == AgentType.PRODUCT_PM:
         return PRODUCT_PM_PROMPT
     else:
-        return SHARK_VC_PROMPT  # Default fallback 
+        return SHARK_VC_PROMPT  # Default fallback
+
 ---
 
 ## FILE: backend/src/analysis_engine.py
 from typing import Dict, List, Optional
+
 from pydantic import BaseModel
+
 from .prompts import AgentType
+
 
 class AnalysisResult(BaseModel):
     missing_sections: List[str]
@@ -1104,150 +1197,268 @@ class AnalysisResult(BaseModel):
     help_tooltips: Dict[str, str]
     next_steps: List[str]
 
+
 class PitchDeckAnalyzer:
     def __init__(self):
         self.vc_rubric = {
-            'team': {
-                'keywords': ['founder', 'team', 'experience', 'background', 'CEO', 'CTO', 'leadership'],
-                'help_text': "Investors need to know why YOU are the right team to solve this problem. Include founding team backgrounds, relevant experience, and unique insights.",
-                'missing_action': "Upload a team slide or answer: What unique experience qualifies your team to solve this problem?"
+            "team": {
+                "keywords": [
+                    "founder",
+                    "team",
+                    "experience",
+                    "background",
+                    "CEO",
+                    "CTO",
+                    "leadership",
+                ],
+                "help_text": "Investors need to know why YOU are the right team to solve this problem. Include founding team backgrounds, relevant experience, and unique insights.",
+                "missing_action": "Upload a team slide or answer: What unique experience qualifies your team to solve this problem?",
             },
-            'market': {
-                'keywords': ['TAM', 'market size', 'billion', 'opportunity', 'market', 'addressable'],
-                'help_text': "VCs want to see a large, growing market. Show Total Addressable Market (TAM), Serviceable Available Market (SAM), and your target market size.",
-                'missing_action': "Provide market sizing data or answer: What's your TAM? How fast is the market growing? What's your target market?"
+            "market": {
+                "keywords": [
+                    "TAM",
+                    "market size",
+                    "billion",
+                    "opportunity",
+                    "market",
+                    "addressable",
+                ],
+                "help_text": "VCs want to see a large, growing market. Show Total Addressable Market (TAM), Serviceable Available Market (SAM), and your target market size.",
+                "missing_action": "Provide market sizing data or answer: What's your TAM? How fast is the market growing? What's your target market?",
             },
-            'traction': {
-                'keywords': ['users', 'revenue', 'growth', 'MRR', 'customers', 'metrics', 'retention'],
-                'help_text': "Traction proves market demand. Show user growth, revenue metrics, retention rates, and key partnerships.",
-                'missing_action': "Share your traction metrics or answer: How many users/customers do you have? What's your monthly growth rate? What's your retention?"
+            "traction": {
+                "keywords": [
+                    "users",
+                    "revenue",
+                    "growth",
+                    "MRR",
+                    "customers",
+                    "metrics",
+                    "retention",
+                ],
+                "help_text": "Traction proves market demand. Show user growth, revenue metrics, retention rates, and key partnerships.",
+                "missing_action": "Share your traction metrics or answer: How many users/customers do you have? What's your monthly growth rate? What's your retention?",
             },
-            'economics': {
-                'keywords': ['CAC', 'LTV', 'unit economics', 'margin', 'profitability', 'monetization'],
-                'help_text': "Unit economics show path to profitability. Include Customer Acquisition Cost (CAC), Lifetime Value (LTV), and gross margins.",
-                'missing_action': "Define your unit economics: What's your CAC and LTV? How do you make money per customer?"
+            "economics": {
+                "keywords": [
+                    "CAC",
+                    "LTV",
+                    "unit economics",
+                    "margin",
+                    "profitability",
+                    "monetization",
+                ],
+                "help_text": "Unit economics show path to profitability. Include Customer Acquisition Cost (CAC), Lifetime Value (LTV), and gross margins.",
+                "missing_action": "Define your unit economics: What's your CAC and LTV? How do you make money per customer?",
             },
-            'competition': {
-                'keywords': ['competitors', 'competitive', 'advantage', 'differentiation', 'moat'],
-                'help_text': "Show understanding of competitive landscape and your defensible advantages.",
-                'missing_action': "Analyze your competition: Who are your main competitors and what's your unique advantage?"
+            "competition": {
+                "keywords": [
+                    "competitors",
+                    "competitive",
+                    "advantage",
+                    "differentiation",
+                    "moat",
+                ],
+                "help_text": "Show understanding of competitive landscape and your defensible advantages.",
+                "missing_action": "Analyze your competition: Who are your main competitors and what's your unique advantage?",
             },
-            'problem': {
-                'keywords': ['problem', 'pain point', 'challenge', 'issue', 'frustration'],
-                'help_text': "Clearly articulate the problem you're solving and why it matters to customers.",
-                'missing_action': "Define the problem: What specific pain point are you solving? How painful is it?"
-            }
-        }
-        
-        self.pm_rubric = {
-            'persona': {
-                'keywords': ['user persona', 'JTBD', 'customer profile', 'target user', 'user research'],
-                'help_text': "Clear user personas drive product decisions. Define who your users are, their pain points, and jobs-to-be-done.",
-                'missing_action': "Create user personas or answer: Who exactly is your target user? What job are they hiring your product to do?"
+            "problem": {
+                "keywords": [
+                    "problem",
+                    "pain point",
+                    "challenge",
+                    "issue",
+                    "frustration",
+                ],
+                "help_text": "Clearly articulate the problem you're solving and why it matters to customers.",
+                "missing_action": "Define the problem: What specific pain point are you solving? How painful is it?",
             },
-            'problem': {
-                'keywords': ['problem', 'pain point', 'user frustration', 'workflow', 'friction'],
-                'help_text': "Deep problem understanding is crucial. Map user workflows and identify specific friction points.",
-                'missing_action': "Detail the problem: What specific workflow breaks? What happens when users can't solve this?"
-            },
-            'solution': {
-                'keywords': ['solution', 'feature', 'product', 'functionality', 'user experience'],
-                'help_text': "Product solution should directly address user pain points with clear value proposition.",
-                'missing_action': "Describe your solution: How exactly does your product solve the user's problem? What's the user flow?"
-            },
-            'metrics': {
-                'keywords': ['metrics', 'KPI', 'engagement', 'retention', 'conversion', 'success'],
-                'help_text': "Define success metrics that prove product-market fit and user value.",
-                'missing_action': "Define success metrics: How do you measure user success? What are your key engagement metrics?"
-            },
-            'roadmap': {
-                'keywords': ['roadmap', 'timeline', 'milestone', 'development', 'iteration'],
-                'help_text': "Product roadmap shows strategic thinking and prioritization framework.",
-                'missing_action': "Share your roadmap: What are your next 3 major product milestones? How do you prioritize features?"
-            }
         }
 
-    def analyze_document_gaps(self, content: str, agent_type: AgentType) -> AnalysisResult:
+        self.pm_rubric = {
+            "persona": {
+                "keywords": [
+                    "user persona",
+                    "JTBD",
+                    "customer profile",
+                    "target user",
+                    "user research",
+                ],
+                "help_text": "Clear user personas drive product decisions. Define who your users are, their pain points, and jobs-to-be-done.",
+                "missing_action": "Create user personas or answer: Who exactly is your target user? What job are they hiring your product to do?",
+            },
+            "problem": {
+                "keywords": [
+                    "problem",
+                    "pain point",
+                    "user frustration",
+                    "workflow",
+                    "friction",
+                ],
+                "help_text": "Deep problem understanding is crucial. Map user workflows and identify specific friction points.",
+                "missing_action": "Detail the problem: What specific workflow breaks? What happens when users can't solve this?",
+            },
+            "solution": {
+                "keywords": [
+                    "solution",
+                    "feature",
+                    "product",
+                    "functionality",
+                    "user experience",
+                ],
+                "help_text": "Product solution should directly address user pain points with clear value proposition.",
+                "missing_action": "Describe your solution: How exactly does your product solve the user's problem? What's the user flow?",
+            },
+            "metrics": {
+                "keywords": [
+                    "metrics",
+                    "KPI",
+                    "engagement",
+                    "retention",
+                    "conversion",
+                    "success",
+                ],
+                "help_text": "Define success metrics that prove product-market fit and user value.",
+                "missing_action": "Define success metrics: How do you measure user success? What are your key engagement metrics?",
+            },
+            "roadmap": {
+                "keywords": [
+                    "roadmap",
+                    "timeline",
+                    "milestone",
+                    "development",
+                    "iteration",
+                ],
+                "help_text": "Product roadmap shows strategic thinking and prioritization framework.",
+                "missing_action": "Share your roadmap: What are your next 3 major product milestones? How do you prioritize features?",
+            },
+        }
+
+    def analyze_document_gaps(
+        self, content: str, agent_type: AgentType
+    ) -> AnalysisResult:
         rubric = self.vc_rubric if agent_type == AgentType.SHARK_VC else self.pm_rubric
         missing_sections = []
         suggested_actions = []
         help_tooltips = {}
-        
+
         for section_id, section_data in rubric.items():
             # Check if section is covered in content
-            keywords_found = sum(1 for keyword in section_data['keywords'] 
-                               if keyword.lower() in content.lower())
-            
+            keywords_found = sum(
+                1
+                for keyword in section_data["keywords"]
+                if keyword.lower() in content.lower()
+            )
+
             if keywords_found < 2:  # Threshold for "covered"
                 missing_sections.append(section_id)
-                suggested_actions.append({
-                    'section': section_id,
-                    'action': section_data['missing_action'],
-                    'priority': 'high' if section_id in ['team', 'market', 'traction', 'problem'] else 'medium'
-                })
-            
-            help_tooltips[section_id] = section_data['help_text']
-        
+                suggested_actions.append(
+                    {
+                        "section": section_id,
+                        "action": section_data["missing_action"],
+                        "priority": "high"
+                        if section_id in ["team", "market", "traction", "problem"]
+                        else "medium",
+                    }
+                )
+
+            help_tooltips[section_id] = section_data["help_text"]
+
         return AnalysisResult(
             missing_sections=missing_sections,
             suggested_actions=suggested_actions,
             help_tooltips=help_tooltips,
-            next_steps=self._generate_next_steps(missing_sections, agent_type)
+            next_steps=self._generate_next_steps(missing_sections, agent_type),
         )
-    
-    def _generate_next_steps(self, missing_sections: List[str], agent_type: AgentType) -> List[str]:
+
+    def _generate_next_steps(
+        self, missing_sections: List[str], agent_type: AgentType
+    ) -> List[str]:
         if agent_type == AgentType.SHARK_VC:
-            priorities = ['team', 'market', 'traction', 'economics', 'competition', 'problem']
+            priorities = [
+                "team",
+                "market",
+                "traction",
+                "economics",
+                "competition",
+                "problem",
+            ]
         else:
-            priorities = ['persona', 'problem', 'solution', 'metrics', 'roadmap']
-        
+            priorities = ["persona", "problem", "solution", "metrics", "roadmap"]
+
         next_steps = []
         for priority in priorities:
             if priority in missing_sections:
-                next_steps.append(f"Focus on {priority} - this is critical for {agent_type.value}")
+                next_steps.append(
+                    f"Focus on {priority} - this is critical for {agent_type.value}"
+                )
                 if len(next_steps) >= 3:  # Limit to top 3 priorities
                     break
-        
-        return next_steps 
+
+        return next_steps
+
 ---
 
 ## FILE: backend/src/main.py
 import os
 import shutil
 import time
+import logging
 from collections import defaultdict
-from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, Dict
+from typing import Dict, Optional, Any, List
+from logging.handlers import RotatingFileHandler
+
 import chromadb
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
-from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.core.storage.storage_context import StorageContext
-from llama_index.llms.openai_like import OpenAILike
-from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters 
-from llama_index.core.memory import ChatMemoryBuffer
+from dotenv import load_dotenv
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from llama_index.core import Settings, SimpleDirectoryReader, VectorStoreIndex
 # --- 1. IMPORT THE SPECIFIC CHAT ENGINE CLASS ---
 from llama_index.core.chat_engine import ContextChatEngine
-from .prompts import AgentType, get_prompt
-from .analysis_engine import PitchDeckAnalyzer
-from .ecosystem_research import StarknetEcosystemResearcher
-from .competitor_analysis import CompetitorAnalyzer
-from .adaptive_questioning import AdaptiveQuestionEngine
+from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.core.storage.storage_context import StorageContext
+from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters
+from llama_index.llms.openai_like import OpenAILike
+from llama_index.vector_stores.chroma import ChromaVectorStore
+from pydantic import BaseModel
 
+from .adaptive_questioning import AdaptiveQuestionEngine
+from .analysis_engine import PitchDeckAnalyzer
+from .competitor_analysis import CompetitorAnalyzer
+from .ecosystem_research import StarknetEcosystemResearcher
+from .prompts import AgentType, get_prompt
 
 # --- Load Environment and Configure Settings ---
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Create a rotating file handler
+file_handler = RotatingFileHandler(
+    'backend.log', maxBytes=10485760, backupCount=5
+)
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(
+    logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+)
+
+# Get logger
+logger = logging.getLogger(__name__)
+logger.addHandler(file_handler)
 
 Settings.llm = OpenAILike(
     api_base="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
     model="anthropic/claude-3.5-sonnet",
     is_chat_model=True,
-    context_window=200000 
+    context_window=200000,
 )
 Settings.embed_model = "local:BAAI/bge-small-en-v1.5"
+
 
 def get_llm_for_agent(agent_type: AgentType):
     """Get the appropriate LLM based on agent type"""
@@ -1259,7 +1470,7 @@ def get_llm_for_agent(agent_type: AgentType):
             model="perplexity/sonar-pro",
             is_chat_model=True,
             context_window=200000,
-            max_tokens=400  # Add this line
+            max_tokens=400,  # Add this line
         )
     else:
         # Use Claude for Product PM deep thinking
@@ -1269,8 +1480,9 @@ def get_llm_for_agent(agent_type: AgentType):
             model="anthropic/claude-3.5-sonnet",
             is_chat_model=True,
             context_window=200000,
-            max_tokens=400  # Add this line
+            max_tokens=400,  # Add this line
         )
+
 
 # --- Database and Vector Store Setup ---
 db = chromadb.PersistentClient(path="./chroma_db")
@@ -1302,42 +1514,44 @@ RATE_LIMIT_WINDOW = 60  # seconds
 EXPENSIVE_RATE_LIMIT = 10  # requests per minute for AI operations
 EXPENSIVE_RATE_WINDOW = 60  # seconds
 
+
 def check_rate_limit(client_ip: str, is_expensive: bool = False):
     """Rate limiting based on client IP and operation type"""
     now = time.time()
-    
+
     if is_expensive:
         # Clean old expensive requests
         expensive_request_counts[client_ip] = [
-            req_time for req_time in expensive_request_counts[client_ip] 
+            req_time
+            for req_time in expensive_request_counts[client_ip]
             if now - req_time < EXPENSIVE_RATE_WINDOW
         ]
-        
+
         # Check expensive operation rate limit
         if len(expensive_request_counts[client_ip]) >= EXPENSIVE_RATE_LIMIT:
             raise HTTPException(
-                status_code=429, 
-                detail=f"AI operation rate limit exceeded. Please wait before trying again. Limit: {EXPENSIVE_RATE_LIMIT} requests per minute."
+                status_code=429,
+                detail=f"AI operation rate limit exceeded. Please wait before trying again. Limit: {EXPENSIVE_RATE_LIMIT} requests per minute.",
             )
-        
+
         # Add current expensive request
         expensive_request_counts[client_ip].append(now)
-    
+
     # Always check general rate limit
     request_counts[client_ip] = [
-        req_time for req_time in request_counts[client_ip] 
+        req_time
+        for req_time in request_counts[client_ip]
         if now - req_time < RATE_LIMIT_WINDOW
     ]
-    
+
     if len(request_counts[client_ip]) >= RATE_LIMIT_REQUESTS:
         raise HTTPException(
-            status_code=429, 
-            detail=f"Rate limit exceeded. Please try again later. Limit: {RATE_LIMIT_REQUESTS} requests per minute."
+            status_code=429,
+            detail=f"Rate limit exceeded. Please try again later. Limit: {RATE_LIMIT_REQUESTS} requests per minute.",
         )
-    
+
     # Add current request
     request_counts[client_ip].append(now)
-
 
 
 # --- Application Setup ---
@@ -1364,74 +1578,103 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "Accept"],  # Be more specific
 )
 
+
 # --- Data Models ---
 class ChatRequest(BaseModel):
     founder_id: str
     message: str
     agent_type: Optional[str] = "Shark VC"  # Default to Shark VC
 
+
 class ChatResponse(BaseModel):
     reply: str
+
 
 class UploadResponse(BaseModel):
     message: str
     filename: str
 
+
+class CompetitorAnalysisRequest(BaseModel):
+    description: str
+    starknet_focus: bool = True
+
+
+class AdaptiveQuestionsRequest(BaseModel):
+    missing_sections: List[str]
+    agent_type: str = "Shark VC"
+    founder_context: str = ""
+    document_content: str = ""
+
+
 # --- API Endpoints ---
 @app.post("/upload/{founder_id}", response_model=UploadResponse)
-async def upload_document(founder_id: str, file: UploadFile = File(...), request: Request = None):
+async def upload_document(
+    founder_id: str, file: UploadFile = File(...), request: Request = None
+):
     # Rate limiting (expensive operation - file processing + AI analysis)
     if request:
         client_ip = request.client.host
         check_rate_limit(client_ip, is_expensive=True)
-    
+
     # Enhanced security validation
-    if file.content_type != 'application/pdf':
-        raise HTTPException(status_code=400, detail="Invalid file type. Only PDFs are accepted.")
-    
+    if file.content_type != "application/pdf":
+        raise HTTPException(
+            status_code=400, detail="Invalid file type. Only PDFs are accepted."
+        )
+
     # File size check (10MB limit)
     if file.size and file.size > 10 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="File too large. Maximum size is 10MB.")
-    
+        raise HTTPException(
+            status_code=413, detail="File too large. Maximum size is 10MB."
+        )
+
     # Validate founder_id format (alphanumeric, email, or "anonymous")
     if not founder_id or len(founder_id) > 100:
         raise HTTPException(status_code=400, detail="Invalid founder ID.")
-    
+
     # Sanitize filename to prevent path traversal attacks
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided.")
-    
-    safe_filename = "".join(c for c in file.filename if c.isalnum() or c in (' ', '.', '_', '-')).rstrip()
-    if not safe_filename or not safe_filename.endswith('.pdf'):
+
+    safe_filename = "".join(
+        c for c in file.filename if c.isalnum() or c in (" ", ".", "_", "-")
+    ).rstrip()
+    if not safe_filename or not safe_filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Invalid filename.")
 
     temp_dir = f"./temp_{founder_id.replace('@', '_').replace('.', '_')}/"
     os.makedirs(temp_dir, exist_ok=True)
-    
+
     try:
         file_path = os.path.join(temp_dir, safe_filename)
-        
+
         # Write file with size limit check during writing
         with open(file_path, "wb") as buffer:
             content = await file.read()
             if len(content) > 10 * 1024 * 1024:
-                raise HTTPException(status_code=413, detail="File too large. Maximum size is 10MB.")
+                raise HTTPException(
+                    status_code=413, detail="File too large. Maximum size is 10MB."
+                )
             buffer.write(content)
 
         reader = SimpleDirectoryReader(
             input_files=[file_path],
-            file_metadata=lambda filename: {"founder_id": founder_id}
+            file_metadata=lambda filename: {"founder_id": founder_id},
         )
         documents = reader.load_data()
         index.insert_nodes(documents)
-        
-        return {"message": f"Document indexed successfully for founder {founder_id}", "filename": safe_filename}
-    
+
+        return {
+            "message": f"Document indexed successfully for founder {founder_id}",
+            "filename": safe_filename,
+        }
+
     except Exception as e:
         # Log error for debugging but don't expose internal details
-        print(f"Upload error for {founder_id}: {str(e)}")
+        logger.error(f"Upload error for {founder_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to process document.")
-    
+
     finally:
         # Ensure temp directory is always cleaned up
         if os.path.exists(temp_dir):
@@ -1442,33 +1685,36 @@ async def upload_document(founder_id: str, file: UploadFile = File(...), request
 async def handle_chat(request: ChatRequest):
     founder_id = request.founder_id
     agent_type = AgentType(request.agent_type)
-    
+
     # Create composite key for session storage
     session_key = f"{founder_id}_{agent_type.value}"
-    
+
     if session_key not in chat_engines:
         retriever = index.as_retriever(
             vector_store_query_mode="default",
-            filters=MetadataFilters(filters=[ExactMatchFilter(key="founder_id", value=founder_id)])
+            filters=MetadataFilters(
+                filters=[ExactMatchFilter(key="founder_id", value=founder_id)]
+            ),
         )
         memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
-        
+
         # Get the appropriate LLM and prompt
         llm = get_llm_for_agent(agent_type)
         prompt = get_prompt(agent_type)
-        
+
         # Create chat engine with specific LLM
         chat_engines[session_key] = ContextChatEngine.from_defaults(
             retriever=retriever,
             memory=memory,
             system_prompt=prompt,
-            llm=llm  # Pass the specific LLM
+            llm=llm,  # Pass the specific LLM
         )
-    
+
     chat_engine = chat_engines[session_key]
     response = await chat_engine.achat(request.message)
-    
+
     return {"reply": str(response)}
+
 
 @app.post("/reset/{founder_id}")
 async def reset_chat(founder_id: str, agent_type: Optional[str] = None):
@@ -1479,49 +1725,62 @@ async def reset_chat(founder_id: str, agent_type: Optional[str] = None):
             return {"message": f"Chat session for {agent_type} has been reset."}
     else:
         # Reset all sessions for this founder
-        keys_to_delete = [key for key in chat_engines.keys() if key.startswith(f"{founder_id}_")]
+        keys_to_delete = [
+            key for key in chat_engines.keys() if key.startswith(f"{founder_id}_")
+        ]
         for key in keys_to_delete:
             del chat_engines[key]
-        return {"message": f"All chat sessions for founder {founder_id} have been reset."}
-    
+        return {
+            "message": f"All chat sessions for founder {founder_id} have been reset."
+        }
+
     return {"message": f"No active session found."}
+
 
 # --- Analysis and Research Endpoints ---
 @app.post("/analyze/{founder_id}")
-async def analyze_pitch_deck(founder_id: str, agent_type: str = "Shark VC", request: Request = None):
+async def analyze_pitch_deck(
+    founder_id: str, agent_type: str = "Shark VC", request: Request = None
+):
     # Rate limiting for AI analysis operations
     if request:
         client_ip = request.client.host
         check_rate_limit(client_ip, is_expensive=True)
-    
+
     # Input validation
     if not founder_id or len(founder_id) > 100:
         raise HTTPException(status_code=400, detail="Invalid founder ID")
-    
+
     # Validate agent_type
     valid_agents = ["Shark VC", "Product PM"]
     if agent_type not in valid_agents:
         raise HTTPException(status_code=400, detail="Invalid agent type")
-    
+
     try:
         # Get founder's documents from vector store
         retriever = index.as_retriever(
-            filters=MetadataFilters(filters=[ExactMatchFilter(key="founder_id", value=founder_id)])
+            filters=MetadataFilters(
+                filters=[ExactMatchFilter(key="founder_id", value=founder_id)]
+            )
         )
-        
+
         # Retrieve relevant document content
         docs = retriever.retrieve("pitch deck analysis")
         content = " ".join([doc.text for doc in docs])
-        
+
         if not content or len(content.strip()) < 50:
-            raise HTTPException(status_code=404, detail="No sufficient document content found for analysis")
-        
+            raise HTTPException(
+                status_code=404,
+                detail="No sufficient document content found for analysis",
+            )
+
         analysis = analyzer.analyze_document_gaps(content, AgentType(agent_type))
         return analysis
-    
+
     except Exception as e:
-        print(f"Analysis error for {founder_id}: {str(e)}")
+        logger.error(f"Analysis error for {founder_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to analyze documents")
+
 
 @app.get("/ecosystem-updates/{founder_space}")
 async def get_ecosystem_updates(founder_space: str, request: Request = None):
@@ -1529,22 +1788,25 @@ async def get_ecosystem_updates(founder_space: str, request: Request = None):
     if request:
         client_ip = request.client.host
         check_rate_limit(client_ip, is_expensive=True)
-    
+
     # Input validation and sanitization
     if not founder_space or len(founder_space) > 200:
         raise HTTPException(status_code=400, detail="Invalid founder space parameter")
-    
+
     # Sanitize input to prevent injection attacks
-    sanitized_space = "".join(c for c in founder_space if c.isalnum() or c in (' ', '-', '_')).strip()
+    sanitized_space = "".join(
+        c for c in founder_space if c.isalnum() or c in (" ", "-", "_")
+    ).strip()
     if not sanitized_space:
         raise HTTPException(status_code=400, detail="Invalid founder space format")
-    
+
     try:
         updates = await researcher.research_ecosystem_updates(sanitized_space)
         return updates
     except Exception as e:
-        print(f"Ecosystem research error: {str(e)}")
+        logger.error(f"Ecosystem research error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch ecosystem updates")
+
 
 @app.get("/case-studies")
 async def get_case_studies(request: Request = None):
@@ -1552,94 +1814,87 @@ async def get_case_studies(request: Request = None):
     if request:
         client_ip = request.client.host
         check_rate_limit(client_ip, is_expensive=True)
-    
+
     try:
         case_studies = await researcher.research_successful_cases()
         return case_studies
     except Exception as e:
-        print(f"Case studies error: {str(e)}")
+        logger.error(f"Case studies error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch case studies")
 
+
 @app.post("/competitor-analysis")
-async def analyze_competitors(request: Dict[str, any], req: Request = None):
+async def analyze_competitors(request: CompetitorAnalysisRequest, req: Request = None):
     # Rate limiting for expensive AI operations
     if req:
         client_ip = req.client.host
         check_rate_limit(client_ip, is_expensive=True)
-    
-    # Input validation
-    if not isinstance(request, dict):
-        raise HTTPException(status_code=400, detail="Invalid request format")
-    
-    project_description = request.get("description", "")
-    starknet_focus = request.get("starknet_focus", True)
-    
-    # Validate project description
-    if not project_description or len(project_description.strip()) < 10:
-        raise HTTPException(status_code=400, detail="Project description must be at least 10 characters")
-    
+
+    # Remove the validation code since Pydantic handles it now
+    # Just use the validated data
+    project_description = request.description
+    starknet_focus = request.starknet_focus
+
+    # Validate project description length
+    if len(project_description) < 10:
+        raise HTTPException(
+            status_code=400, detail="Project description must be at least 10 characters"
+        )
+
     if len(project_description) > 2000:
-        raise HTTPException(status_code=400, detail="Project description too long (max 2000 characters)")
-    
-    # Validate starknet_focus parameter
-    if not isinstance(starknet_focus, bool):
-        raise HTTPException(status_code=400, detail="Invalid starknet_focus parameter")
-    
+        raise HTTPException(
+            status_code=400, detail="Project description too long (max 2000 characters)"
+        )
+
     try:
-        analysis = await competitor_analyzer.analyze_competitors(project_description.strip(), starknet_focus)
+        analysis = await competitor_analyzer.analyze_competitors(
+            project_description.strip(), starknet_focus
+        )
         return analysis
     except Exception as e:
-        print(f"Competitor analysis error: {str(e)}")
+        logger.error(f"Competitor analysis error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to analyze competitors")
 
+
 @app.post("/adaptive-questions")
-async def get_adaptive_questions(request: Dict[str, any], req: Request = None):
+async def get_adaptive_questions(request: AdaptiveQuestionsRequest, req: Request = None):
     # Rate limiting for AI question generation
     if req:
         client_ip = req.client.host
         check_rate_limit(client_ip, is_expensive=True)
-    
-    # Input validation
-    if not isinstance(request, dict):
-        raise HTTPException(status_code=400, detail="Invalid request format")
-    
-    missing_sections = request.get("missing_sections", [])
-    agent_type = request.get("agent_type", "Shark VC")
-    founder_context = request.get("founder_context", "")
-    document_content = request.get("document_content", "")
-    
-    # Validate missing_sections
-    if not isinstance(missing_sections, list):
-        raise HTTPException(status_code=400, detail="missing_sections must be a list")
-    
-    if len(missing_sections) > 20:
+
+    # Validate list length
+    if len(request.missing_sections) > 20:
         raise HTTPException(status_code=400, detail="Too many missing sections")
-    
+
     # Validate agent_type
     valid_agents = ["Shark VC", "Product PM"]
-    if agent_type not in valid_agents:
+    if request.agent_type not in valid_agents:
         raise HTTPException(status_code=400, detail="Invalid agent type")
-    
+
     # Validate string lengths
-    if len(founder_context) > 500:
+    if len(request.founder_context) > 500:
         raise HTTPException(status_code=400, detail="Founder context too long")
-    
-    if len(document_content) > 5000:
+
+    if len(request.document_content) > 5000:
         raise HTTPException(status_code=400, detail="Document content too long")
-    
+
     try:
-        questions = question_engine.generate_adaptive_questions(missing_sections, agent_type)
-        
+        questions = question_engine.generate_adaptive_questions(
+            request.missing_sections, request.agent_type
+        )
+
         # Contextualize questions
         for question in questions:
             question["question"] = question_engine.contextualize_question(
-                question["question"], founder_context.strip(), document_content.strip()
+                question["question"], request.founder_context, request.document_content
             )
-        
+
         return {"questions": questions}
     except Exception as e:
-        print(f"Adaptive questions error: {str(e)}")
+        logger.error(f"Adaptive questions error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate questions")
+
 
 # --- Health Check ---
 @app.get("/")
@@ -3010,23 +3265,26 @@ export default config
 
 import { Button } from "@/app/components/ui/button"
 import { cn } from "@/app/lib/utils"
-import { Briefcase, Brain, Coffee, Lock } from "lucide-react"
+import { Briefcase, Lock } from "lucide-react"
+import { SharkIcon, BrainIcon } from "./custom-icons"
 
 const AGENTS = [
   { 
     name: 'Product PM', 
     available: true, 
-    icon: Brain,
+    icon: BrainIcon,
     description: 'Start here - Product strategy insights',
     gradient: 'from-blue-600 to-cyan-600',
+    bgGradient: 'from-blue-600/10 to-cyan-600/10',
     basedOn: 'Based on Lenny Rachitsky'
   },
   { 
     name: 'Shark VC', 
     available: true, 
-    icon: Briefcase,
+    icon: SharkIcon,
     description: 'Next step - Brutal investor feedback',
     gradient: 'from-red-600 to-orange-600',
+    bgGradient: 'from-red-600/10 to-orange-600/10',
     basedOn: 'Based on top VCs from Sequoia, a16z, YC'
   }
 ]
@@ -3038,11 +3296,11 @@ interface AgentSelectorProps {
 
 export default function AgentSelector({ selectedAgent, onSelect }: AgentSelectorProps) {
   return (
-    <div className="w-full p-6">
-      <h2 className="text-center text-sm font-medium text-muted-foreground mb-4">
-        Choose your VC personality
+    <div className="w-full p-6 md:p-8">
+      <h2 className="text-center text-sm font-medium text-muted-foreground mb-6">
+        Choose your advisor personality
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
         {AGENTS.map((agent) => {
           const Icon = agent.icon
           const isSelected = selectedAgent === agent.name
@@ -3053,37 +3311,46 @@ export default function AgentSelector({ selectedAgent, onSelect }: AgentSelector
               onClick={() => agent.available && onSelect(agent.name)}
               variant="outline"
               className={cn(
-                "relative h-auto p-6 flex flex-col items-center gap-3 transition-all",
-                isSelected && "border-primary shadow-lg shadow-primary/20",
+                "relative h-auto p-6 flex flex-col items-center gap-4 transition-all duration-300 group card-hover",
+                isSelected && "border-primary shadow-xl shadow-primary/20 scale-[1.02]",
                 !agent.available && "opacity-50 cursor-not-allowed"
               )}
               disabled={!agent.available}
             >
-              {!agent.available && (
-                <Lock className="absolute top-2 right-2 h-4 w-4 text-muted-foreground" />
-              )}
               <div className={cn(
-                "p-3 rounded-lg",
+                "absolute inset-0 rounded-lg opacity-10 transition-opacity duration-300",
+                `bg-gradient-to-br ${agent.bgGradient}`,
+                isSelected && "opacity-20"
+              )} />
+              
+              {!agent.available && (
+                <Lock className="absolute top-3 right-3 h-4 w-4 text-muted-foreground" />
+              )}
+              
+              <div className={cn(
+                "p-4 rounded-xl transition-all duration-300",
                 isSelected 
-                  ? `bg-gradient-to-br ${agent.gradient}` 
-                  : "bg-secondary"
+                  ? `bg-gradient-to-br ${agent.gradient} shadow-lg` 
+                  : "bg-secondary group-hover:bg-secondary/70"
               )}>
                 <Icon className={cn(
-                  "h-6 w-6",
+                  "h-8 w-8 transition-transform duration-300 group-hover:scale-110",
                   isSelected ? "text-white" : "text-muted-foreground"
                 )} />
               </div>
-              <div className="text-center">
-                <h3 className="font-semibold">{agent.name}</h3>
-                <p className="text-xs text-muted-foreground mt-1">
+              
+              <div className="text-center z-10">
+                <h3 className="font-semibold text-lg">{agent.name}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
                   {agent.available ? agent.description : "Coming soon"}
                 </p>
-                <p className="text-xs text-muted-foreground/70 mt-1 italic">
+                <p className="text-xs text-muted-foreground/70 mt-2 italic">
                   {agent.basedOn}
                 </p>
               </div>
+              
               {agent.name === 'Product PM' && (
-                <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-starknet-teal to-starknet-purple text-white text-xs px-3 py-1 rounded-full shadow-lg animate-pulse">
                   Start here
                 </div>
               )}
@@ -3102,6 +3369,7 @@ export default function AgentSelector({ selectedAgent, onSelect }: AgentSelector
 import { useEffect, useRef } from "react"
 import { cn } from "@/app/lib/utils"
 import { Bot, User } from "lucide-react"
+import { SharkIcon, BrainIcon } from "./custom-icons"
 
 interface Message {
   role: 'user' | 'assistant'
@@ -3111,7 +3379,7 @@ interface Message {
 interface ChatInterfaceProps {
   messages: Message[]
   isLoading: boolean
-  selectedAgent?: string  // Add this
+  selectedAgent?: string
 }
 
 export default function ChatInterface({ messages, isLoading, selectedAgent = 'Shark VC' }: ChatInterfaceProps) {
@@ -3125,17 +3393,33 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
     scrollToBottom()
   }, [messages])
 
+  const getAgentIcon = () => {
+    if (selectedAgent === 'Product PM') {
+      return <BrainIcon className="h-5 w-5" />
+    }
+    return <SharkIcon className="h-5 w-5" />
+  }
+
+  const getAgentColor = () => {
+    return selectedAgent === 'Product PM' 
+      ? 'from-blue-600/20 to-cyan-600/20' 
+      : 'from-red-600/20 to-orange-600/20'
+  }
+
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
       {messages.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
-          <div className="p-4 rounded-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 mb-4">
-            <Bot className="h-12 w-12 text-primary" />
+        <div className="flex flex-col items-center justify-center h-full text-center animate-slide-up">
+          <div className={cn(
+            "p-6 rounded-full bg-gradient-to-br mb-6 animate-pulse-glow",
+            getAgentColor()
+          )}>
+            {getAgentIcon()}
           </div>
           <h3 className="text-xl font-semibold mb-2">
             {selectedAgent === 'Product PM' ? 'Ready to refine your product?' : 'Ready for investor feedback?'}
           </h3>
-          <p className="text-muted-foreground max-w-md">
+          <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
             {selectedAgent === 'Product PM' 
               ? "Upload your PRD or describe your product. I'll help you refine your product strategy with frameworks from top tech companies."
               : "Upload your pitch deck. I'll analyze it like a top-tier VC would, focusing on what matters for fundraising."
@@ -3148,32 +3432,38 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
         <div
           key={index}
           className={cn(
-            "flex gap-3 message-enter",
+            "flex gap-3 animate-slide-up",
             message.role === 'user' ? 'justify-end' : 'justify-start'
           )}
+          style={{ animationDelay: `${index * 50}ms` }}
         >
           {message.role === 'assistant' && (
             <div className="flex-shrink-0">
-              <div className="p-2 rounded-lg bg-secondary">
-                <Bot className="h-5 w-5" />
+              <div className={cn(
+                "p-2.5 rounded-full bg-gradient-to-br shadow-lg",
+                getAgentColor()
+              )}>
+                {getAgentIcon()}
               </div>
             </div>
           )}
           
           <div
             className={cn(
-              "max-w-[70%] rounded-lg px-4 py-3",
+              "max-w-[70%] rounded-2xl px-5 py-3.5 shadow-sm",
               message.role === 'user' 
                 ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white' 
-                : 'bg-secondary'
+                : 'bg-secondary/60 backdrop-blur-sm border border-border/50'
             )}
           >
-            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+              {message.content}
+            </p>
           </div>
           
           {message.role === 'user' && (
             <div className="flex-shrink-0">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
+              <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg">
                 <User className="h-5 w-5 text-white" />
               </div>
             </div>
@@ -3182,15 +3472,18 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
       ))}
       
       {isLoading && (
-        <div className="flex gap-3 justify-start">
+        <div className="flex gap-3 justify-start animate-slide-up">
           <div className="flex-shrink-0">
-            <div className="p-2 rounded-lg bg-secondary">
-              <Bot className="h-5 w-5" />
+            <div className={cn(
+              "p-2.5 rounded-full bg-gradient-to-br shadow-lg",
+              getAgentColor()
+            )}>
+              {getAgentIcon()}
             </div>
           </div>
-          <div className="bg-secondary rounded-lg px-4 py-3">
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
+          <div className="bg-secondary/60 backdrop-blur-sm border border-border/50 rounded-2xl px-5 py-3.5">
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1.5">
                 <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                 <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                 <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -3480,6 +3773,20 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
 } 
 ---
 
+## FILE: frontend/components/custom-icons.tsx
+export const SharkIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 2c1.5 0 3 .5 4.2 1.3L14 7.5c-.5-.3-1.2-.5-2-.5s-1.5.2-2 .5L7.8 5.3C9 4.5 10.5 4 12 4zm-5 6c.3 0 .7.1 1 .3l2 1.2v2.3l-2 1.2c-.3.2-.7.3-1 .3-1.1 0-2-.9-2-2s.9-2 2-2zm10 0c1.1 0 2 .9 2 2s-.9 2-2 2c-.3 0-.7-.1-1-.3l-2-1.2v-2.3l2-1.2c.3-.2.7-.3 1-.3zm-5 4.5l1.5.9c.5.3 1 .5 1.5.6v2.8c-1 .2-2 .2-3 0V16c.5-.1 1-.3 1.5-.6l1.5-.9z"/>
+  </svg>
+)
+
+export const BrainIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C9.5 2 7.4 3.4 6.5 5.4 4.5 5.9 3 7.7 3 10c0 1.3.5 2.5 1.4 3.4-.9 1-1.4 2.3-1.4 3.6 0 3.3 2.7 6 6 6 1.4 0 2.7-.5 3.7-1.3.7.8 1.7 1.3 2.8 1.3 2.2 0 4-1.8 4-4 0-.8-.2-1.5-.6-2.1 1.3-1 2.1-2.6 2.1-4.4 0-3-2.5-5.5-5.5-5.5-.4 0-.8.1-1.2.2C13.9 4.3 13 2 12 2zm0 2c.8 0 1.5 1.1 1.5 2.5S12.8 9 12 9s-1.5-1.1-1.5-2.5S11.2 4 12 4zm-4.5 3c.8 0 1.5.7 1.5 1.5S8.3 10 7.5 10 6 9.3 6 8.5 6.7 7 7.5 7zm9 0c1.9 0 3.5 1.6 3.5 3.5 0 1.2-.6 2.3-1.6 2.9l-.9.6.5 1c.3.5.5 1.1.5 1.7 0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V17h-2v1.5c0 2.5-2 4.5-4.5 4.5S3 21 3 18.5 5 14 7.5 14H9v-2H7.5C5.6 12 4 10.4 4 8.5S5.6 5 7.5 5c.2 0 .3 0 .5.1l1 .2.3-1C9.8 2.9 10.8 2 12 2c1.2 0 2.2.9 2.7 2.3l.3 1 1-.2c.2-.1.3-.1.5-.1z"/>
+  </svg>
+) 
+---
+
 ## FILE: frontend/components/competitor-analysis.tsx
 "use client"
 
@@ -3524,7 +3831,7 @@ export default function CompetitorAnalysis() {
   }
 
   return (
-    <Card>
+    <Card className="card-hover bg-gradient-to-br from-background to-secondary/20 border-border/50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
@@ -3736,7 +4043,7 @@ export default function AdaptiveQuestions({
   }
 
   return (
-    <Card className="mb-4">
+    <Card className="mb-4 card-hover bg-gradient-to-br from-background to-secondary/20 border-border/50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
           <MessageCircle className="h-4 w-4 text-primary" />
@@ -4010,8 +4317,10 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
 ## FILE: frontend/components/progress-indicators.tsx
 "use client"
 
-import { Check, Circle } from "lucide-react"
+import { Check, Circle, Trophy } from "lucide-react"
 import { cn } from "@/app/lib/utils"
+import { useEffect, useState } from "react"
+import confetti from 'canvas-confetti'
 
 interface RubricItem {
   id: string
@@ -4055,47 +4364,71 @@ export default function ProgressIndicators({ selectedAgent, completedItems, clas
   const completedCount = completedItems.length
   const totalCount = rubric.length
   const percentage = (completedCount / totalCount) * 100
+  const [hasCompletedAll, setHasCompletedAll] = useState(false)
+
+  useEffect(() => {
+    if (percentage === 100 && !hasCompletedAll) {
+      setHasCompletedAll(true)
+      // Trigger confetti
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#00ffff', '#ff00ff', '#ffff00']
+      })
+    }
+  }, [percentage, hasCompletedAll])
 
   return (
-    <div className={cn("bg-secondary/50 rounded-lg p-4", className)}>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium">Analysis Progress</h3>
-        <span className="text-xs text-muted-foreground">
+    <div className={cn("bg-gradient-to-br from-secondary/50 to-secondary/30 rounded-xl p-5 backdrop-blur-sm border border-border/50 card-hover", className)}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-semibold bg-gradient-to-r from-primary to-starknet-teal bg-clip-text text-transparent">
+          Analysis Progress
+        </h3>
+        <span className="text-xs text-muted-foreground font-medium">
           {completedCount}/{totalCount} completed
         </span>
       </div>
       
-      {/* Progress bar */}
-      <div className="w-full bg-secondary rounded-full h-2 mb-4 overflow-hidden">
+      {/* Progress bar with gradient fill */}
+      <div className="w-full bg-secondary/70 rounded-full h-2.5 mb-5 overflow-hidden">
         <div 
-          className="h-full bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-500 ease-out"
-          style={{ width: `${percentage}%` }}
+          className="h-full bg-gradient-to-r from-blue-600 via-starknet-teal to-purple-600 transition-all duration-700 ease-out rounded-full"
+          style={{ 
+            width: `${percentage}%`,
+            boxShadow: percentage > 0 ? '0 0 10px rgba(0, 255, 255, 0.5)' : 'none'
+          }}
         />
       </div>
 
-      {/* Rubric items */}
-      <div className="grid grid-cols-1 gap-2">
-        {rubric.map((item) => {
+      {/* Rubric items with enhanced animations */}
+      <div className="grid grid-cols-1 gap-2.5">
+        {rubric.map((item, index) => {
           const isCompleted = completedItems.includes(item.id)
           return (
             <div 
               key={item.id} 
               className={cn(
-                "flex items-center gap-2 text-xs transition-all duration-200",
-                isCompleted ? "text-foreground" : "text-muted-foreground"
+                "flex items-center gap-3 text-xs transition-all duration-300 p-2 rounded-lg",
+                isCompleted 
+                  ? "text-foreground bg-primary/10" 
+                  : "text-muted-foreground hover:bg-secondary/30"
               )}
+              style={{
+                animationDelay: isCompleted ? `${index * 50}ms` : '0ms'
+              }}
             >
               <div className="relative">
                 {isCompleted ? (
-                  <div className="animate-in zoom-in-50 duration-200">
-                    <Check className="h-4 w-4 text-green-500" />
+                  <div className="animate-in zoom-in-50 duration-300">
+                    <Check className="h-4 w-4 text-starknet-teal" />
                   </div>
                 ) : (
-                  <Circle className="h-4 w-4" />
+                  <Circle className="h-4 w-4 opacity-50" />
                 )}
               </div>
               <span className={cn(
-                "transition-all duration-200",
+                "transition-all duration-300 flex-1",
                 isCompleted && "font-medium"
               )}>
                 {item.label}
@@ -4105,12 +4438,15 @@ export default function ProgressIndicators({ selectedAgent, completedItems, clas
         })}
       </div>
 
-      {/* Completion celebration */}
+      {/* Completion celebration with enhanced design */}
       {completedCount === totalCount && (
-        <div className="mt-4 p-3 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-lg border border-primary/20">
-          <p className="text-xs text-center font-medium">
-            🎉 Complete analysis achieved! Ready for the next round.
-          </p>
+        <div className="mt-5 p-4 bg-gradient-to-r from-starknet-teal/20 to-starknet-purple/20 rounded-xl border border-starknet-teal/30 animate-pulse-glow">
+          <div className="flex items-center gap-3">
+            <Trophy className="h-5 w-5 text-starknet-teal" />
+            <p className="text-sm font-medium">
+              🎉 Complete analysis achieved! Ready for the next level.
+            </p>
+          </div>
         </div>
       )}
     </div>
@@ -4172,7 +4508,7 @@ export default function SmartSuggestions({ founderId, selectedAgent, onActionCli
 
   if (isLoading) {
     return (
-      <Card className="mb-4">
+      <Card className="mb-4 card-hover bg-gradient-to-br from-background to-secondary/20 border-border/50">
         <CardContent className="p-6">
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-secondary rounded w-3/4"></div>
@@ -4192,7 +4528,7 @@ export default function SmartSuggestions({ founderId, selectedAgent, onActionCli
   )
 
   return (
-    <Card className="mb-4">
+    <Card className="mb-4 card-hover bg-gradient-to-br from-background to-secondary/20 border-border/50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
           <AlertCircle className="h-4 w-4 text-yellow-500" />
@@ -4376,6 +4712,26 @@ module.exports = {
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
     --radius: 0.5rem;
+    
+    /* Add Starknet brand colors */
+    --starknet-teal: 180 100% 50%;
+    --starknet-purple: 270 100% 65%;
+    --starknet-orange: 30 100% 60%;
+    
+    /* Enhanced gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--starknet-teal)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--starknet-purple)), hsl(var(--starknet-orange)));
+    
+    /* Chat bubbles */
+    --chat-user: 217.2 91.2% 59.8%;
+    --chat-assistant: 217.2 32.6% 17.5%;
+    
+    /* Typography scale */
+    --text-xs: 0.75rem;   /* 12px */
+    --text-sm: 0.875rem;  /* 14px */
+    --text-base: 1rem;    /* 16px */
+    --text-lg: 1.125rem;  /* 18px */
+    --text-xl: 1.25rem;   /* 20px */
   }
 }
 
@@ -4489,6 +4845,57 @@ module.exports = {
 
 .animate-celebration {
   animation: celebration 0.5s ease-in-out;
+}
+
+/* Enhanced animations */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 10px rgba(0, 255, 255, 0.2);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0, 255, 255, 0.3);
+}
+
+/* Starknet button variant */
+.btn-starknet {
+  background: linear-gradient(135deg, hsl(var(--starknet-teal)), hsl(var(--starknet-purple)));
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-starknet:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4);
 }
 ---
 

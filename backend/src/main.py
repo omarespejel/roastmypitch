@@ -10,6 +10,7 @@ import chromadb
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_socketio import SocketManager
 from llama_index.core import Settings, SimpleDirectoryReader, VectorStoreIndex
 # --- 1. IMPORT THE SPECIFIC CHAT ENGINE CLASS ---
 from llama_index.core.chat_engine import ContextChatEngine
@@ -175,6 +176,24 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Be more specific
     allow_headers=["Content-Type", "Authorization", "Accept"],  # Be more specific
 )
+
+# Add Socket.io setup after FastAPI app initialization
+socket_manager = SocketManager(app=app, cors_allowed_origins=[])
+
+@socket_manager.on('connect')
+async def connect(sid, environ):
+    logger.info(f"Client {sid} connected")
+
+@socket_manager.on('disconnect')
+async def disconnect(sid):
+    logger.info(f"Client {sid} disconnected")
+
+@socket_manager.on('user_typing')
+async def handle_typing(sid, data):
+    founder_id = data.get('founderId')
+    await socket_manager.emit('user_typing', 
+                            {'userId': data.get('userId')}, 
+                            room=founder_id)
 
 
 # --- Data Models ---
