@@ -24,6 +24,26 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
     --radius: 0.5rem;
+    
+    /* Add Starknet brand colors */
+    --starknet-teal: 180 100% 50%;
+    --starknet-purple: 270 100% 65%;
+    --starknet-orange: 30 100% 60%;
+    
+    /* Enhanced gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--starknet-teal)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--starknet-purple)), hsl(var(--starknet-orange)));
+    
+    /* Chat bubbles */
+    --chat-user: 217.2 91.2% 59.8%;
+    --chat-assistant: 217.2 32.6% 17.5%;
+    
+    /* Typography scale */
+    --text-xs: 0.75rem;   /* 12px */
+    --text-sm: 0.875rem;  /* 14px */
+    --text-base: 1rem;    /* 16px */
+    --text-lg: 1.125rem;  /* 18px */
+    --text-xl: 1.25rem;   /* 20px */
   }
 }
 
@@ -137,4 +157,55 @@
 
 .animate-celebration {
   animation: celebration 0.5s ease-in-out;
+}
+
+/* Enhanced animations */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 10px rgba(0, 255, 255, 0.2);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0, 255, 255, 0.3);
+}
+
+/* Starknet button variant */
+.btn-starknet {
+  background: linear-gradient(135deg, hsl(var(--starknet-teal)), hsl(var(--starknet-purple)));
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-starknet:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4);
 }

@@ -51,7 +51,7 @@ export default function SmartSuggestions({ founderId, selectedAgent, onActionCli
 
   if (isLoading) {
     return (
-      <Card className="mb-4">
+      <Card className="mb-4 card-hover bg-gradient-to-br from-background to-secondary/20 border-border/50">
         <CardContent className="p-6">
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-secondary rounded w-3/4"></div>
@@ -71,7 +71,7 @@ export default function SmartSuggestions({ founderId, selectedAgent, onActionCli
   )
 
   return (
-    <Card className="mb-4">
+    <Card className="mb-4 card-hover bg-gradient-to-br from-background to-secondary/20 border-border/50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
           <AlertCircle className="h-4 w-4 text-yellow-500" />

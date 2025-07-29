@@ -71,7 +71,7 @@ export default function AdaptiveQuestions({
   }
 
   return (
-    <Card className="mb-4">
+    <Card className="mb-4 card-hover bg-gradient-to-br from-background to-secondary/20 border-border/50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
           <MessageCircle className="h-4 w-4 text-primary" />
