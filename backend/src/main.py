@@ -23,8 +23,6 @@ from pydantic import BaseModel
 
 from .adaptive_questioning import AdaptiveQuestionEngine
 from .analysis_engine import PitchDeckAnalyzer
-from .competitor_analysis import CompetitorAnalyzer
-from .ecosystem_research import StarknetEcosystemResearcher
 from .prompts import AgentType, get_prompt
 
 # --- Load Environment and Configure Settings ---
@@ -97,8 +95,6 @@ chat_engines = {}
 
 # --- Analysis and Research Services ---
 analyzer = PitchDeckAnalyzer()
-researcher = StarknetEcosystemResearcher()
-competitor_analyzer = CompetitorAnalyzer()
 question_engine = AdaptiveQuestionEngine()
 
 # --- Rate Limiting ---
@@ -210,11 +206,6 @@ class ChatResponse(BaseModel):
 class UploadResponse(BaseModel):
     message: str
     filename: str
-
-
-class CompetitorAnalysisRequest(BaseModel):
-    description: str
-    starknet_focus: bool = True
 
 
 class AdaptiveQuestionsRequest(BaseModel):
@@ -399,78 +390,13 @@ async def analyze_pitch_deck(
         raise HTTPException(status_code=500, detail="Failed to analyze documents")
 
 
-@app.get("/ecosystem-updates/{founder_space}")
-async def get_ecosystem_updates(founder_space: str, request: Request = None):
-    # Rate limiting for AI research operations
-    if request:
-        client_ip = request.client.host
-        check_rate_limit(client_ip, is_expensive=True)
-
-    # Input validation and sanitization
-    if not founder_space or len(founder_space) > 200:
-        raise HTTPException(status_code=400, detail="Invalid founder space parameter")
-
-    # Sanitize input to prevent injection attacks
-    sanitized_space = "".join(
-        c for c in founder_space if c.isalnum() or c in (" ", "-", "_")
-    ).strip()
-    if not sanitized_space:
-        raise HTTPException(status_code=400, detail="Invalid founder space format")
-
-    try:
-        updates = await researcher.research_ecosystem_updates(sanitized_space)
-        return updates
-    except Exception as e:
-        logger.error(f"Ecosystem research error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to fetch ecosystem updates")
 
 
-@app.get("/case-studies")
-async def get_case_studies(request: Request = None):
-    # Rate limiting for AI research operations
-    if request:
-        client_ip = request.client.host
-        check_rate_limit(client_ip, is_expensive=True)
-
-    try:
-        case_studies = await researcher.research_successful_cases()
-        return case_studies
-    except Exception as e:
-        logger.error(f"Case studies error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to fetch case studies")
 
 
-@app.post("/competitor-analysis")
-async def analyze_competitors(request: CompetitorAnalysisRequest, req: Request = None):
-    # Rate limiting for expensive AI operations
-    if req:
-        client_ip = req.client.host
-        check_rate_limit(client_ip, is_expensive=True)
 
-    # Remove the validation code since Pydantic handles it now
-    # Just use the validated data
-    project_description = request.description
-    starknet_focus = request.starknet_focus
 
-    # Validate project description length
-    if len(project_description) < 10:
-        raise HTTPException(
-            status_code=400, detail="Project description must be at least 10 characters"
-        )
 
-    if len(project_description) > 2000:
-        raise HTTPException(
-            status_code=400, detail="Project description too long (max 2000 characters)"
-        )
-
-    try:
-        analysis = await competitor_analyzer.analyze_competitors(
-            project_description.strip(), starknet_focus
-        )
-        return analysis
-    except Exception as e:
-        logger.error(f"Competitor analysis error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to analyze competitors")
 
 
 @app.post("/adaptive-questions")

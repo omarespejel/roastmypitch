@@ -12,8 +12,6 @@ import MessageInput from '@/components/message-input'
 import ProgressIndicators from '@/components/progress-indicators'
 import OnboardingGuide from '@/components/onboarding-guide'
 import SmartSuggestions from '@/components/smart-suggestions'
-import EcosystemUpdates from '@/components/ecosystem-updates'
-import CompetitorAnalysis from '@/components/competitor-analysis'
 import AdaptiveQuestions from '@/components/adaptive-questions'
 import FeedbackModal from '@/components/feedback-modal'
 import { Card } from '@/app/components/ui/card'
@@ -365,12 +363,6 @@ export default function Home() {
                 founderContext="starknet founder"
                 onQuestionSelect={(question) => sendMessage(question)}
               />
-              
-              <EcosystemUpdates 
-                founderSpace={selectedAgent === 'Product PM' ? 'product development' : 'fundraising'}
-              />
-              
-              <CompetitorAnalysis />
             </div>
           )}
         </div>
