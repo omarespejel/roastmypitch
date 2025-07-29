@@ -10,7 +10,7 @@ import chromadb
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_socketio import SocketManager
+import socketio
 from llama_index.core import Settings, SimpleDirectoryReader, VectorStoreIndex
 # --- 1. IMPORT THE SPECIFIC CHAT ENGINE CLASS ---
 from llama_index.core.chat_engine import ContextChatEngine
@@ -106,7 +106,7 @@ RATE_LIMIT_REQUESTS = 60  # requests per minute for general endpoints
 RATE_LIMIT_WINDOW = 60  # seconds
 
 # Expensive operations rate limits (AI-powered features)
-EXPENSIVE_RATE_LIMIT = 10  # requests per minute for AI operations
+EXPENSIVE_RATE_LIMIT = 30  # requests per minute for AI operations (increased for better UX)
 EXPENSIVE_RATE_WINDOW = 60  # seconds
 
 
@@ -124,9 +124,12 @@ def check_rate_limit(client_ip: str, is_expensive: bool = False):
 
         # Check expensive operation rate limit
         if len(expensive_request_counts[client_ip]) >= EXPENSIVE_RATE_LIMIT:
+            wait_time = EXPENSIVE_RATE_WINDOW - (now - min(expensive_request_counts[client_ip]))
+            logger.warning(f"Rate limit exceeded for {client_ip}: {len(expensive_request_counts[client_ip])}/{EXPENSIVE_RATE_LIMIT} requests")
             raise HTTPException(
                 status_code=429,
-                detail=f"AI operation rate limit exceeded. Please wait before trying again. Limit: {EXPENSIVE_RATE_LIMIT} requests per minute.",
+                detail=f"Too many AI requests. Please wait {int(wait_time)} seconds before trying again. Current: {len(expensive_request_counts[client_ip])}/{EXPENSIVE_RATE_LIMIT} requests per minute.",
+                headers={"Retry-After": str(int(wait_time))}
             )
 
         # Add current expensive request
@@ -165,31 +168,38 @@ allowed_origins = [FRONTEND_URL]
 if PRODUCTION_FRONTEND:
     allowed_origins.append(PRODUCTION_FRONTEND)
 
+# IMPORTANT: Add CORS middleware BEFORE SocketManager to ensure OPTIONS requests work
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Be more specific
-    allow_headers=["Content-Type", "Authorization", "Accept"],  # Be more specific
+    allow_methods=["*"],  # Allow all methods including OPTIONS
+    allow_headers=["*"],  # Allow all headers for preflight requests
 )
 
-# Add Socket.io setup after FastAPI app initialization
-socket_manager = SocketManager(app=app, cors_allowed_origins=[])
+# Create Socket.IO server with CORS support
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins=allowed_origins
+)
 
-@socket_manager.on('connect')
+# Wrap FastAPI app with Socket.IO
+socket_app = socketio.ASGIApp(sio, app)
+
+@sio.event
 async def connect(sid, environ):
     logger.info(f"Client {sid} connected")
 
-@socket_manager.on('disconnect')
+@sio.event
 async def disconnect(sid):
     logger.info(f"Client {sid} disconnected")
 
-@socket_manager.on('user_typing')
-async def handle_typing(sid, data):
+@sio.event
+async def user_typing(sid, data):
     founder_id = data.get('founderId')
-    await socket_manager.emit('user_typing', 
-                            {'userId': data.get('userId')}, 
-                            room=founder_id)
+    await sio.emit('user_typing', 
+                   {'userId': data.get('userId')}, 
+                   room=founder_id)
 
 
 # --- Data Models ---
@@ -206,6 +216,7 @@ class ChatResponse(BaseModel):
 class UploadResponse(BaseModel):
     message: str
     filename: str
+    analysis: Optional[Dict[str, Any]] = None  # Contains analysis results for both agents
 
 
 class AdaptiveQuestionsRequest(BaseModel):
@@ -273,9 +284,41 @@ async def upload_document(
         documents = reader.load_data()
         index.insert_nodes(documents)
 
+        # 🔥 Automatically analyze the newly uploaded document for both agent types!
+        analysis = None
+        try:
+            document_text = " ".join(doc.text for doc in documents)
+            
+            # Run analysis for both agent types
+            analysis_pm = analyzer.analyze_document_gaps(
+                document_text, AgentType("Product PM")
+            )
+            analysis_vc = analyzer.analyze_document_gaps(
+                document_text, AgentType("Shark VC")
+            )
+            
+            analysis = {
+                "Product PM": analysis_pm.dict() if hasattr(analysis_pm, 'dict') else analysis_pm,
+                "Shark VC": analysis_vc.dict() if hasattr(analysis_vc, 'dict') else analysis_vc,
+            }
+            
+            # Notify connected clients via Socket.IO
+            await sio.emit("analysis_ready", {
+                "founder_id": founder_id,
+                "analysis": analysis,
+                "filename": safe_filename
+            })
+            
+            logger.info(f"Auto-analysis completed for {founder_id}")
+            
+        except Exception as analysis_error:
+            logger.error(f"Auto-analysis on upload failed for {founder_id}: {analysis_error}", exc_info=True)
+            analysis = None
+
         return {
-            "message": f"Document indexed successfully for founder {founder_id}",
+            "message": f"Document indexed and analyzed successfully for founder {founder_id}",
             "filename": safe_filename,
+            "analysis": analysis,
         }
 
     except Exception as e:
@@ -443,3 +486,15 @@ async def get_adaptive_questions(request: AdaptiveQuestionsRequest, req: Request
 @app.get("/")
 def read_root():
     return {"status": "Starknet VC Co-pilot API is running"}
+
+
+# Export the Socket.IO wrapped app for both REST and WebSocket support
+# This preserves all FastAPI middleware (including CORS) and adds Socket.IO functionality
+if __name__ != "__main__":
+    # For production (uvicorn/gunicorn), export the Socket.IO wrapped FastAPI app
+    app = socket_app
+
+# For local development (CLI run)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("src.main:socket_app", host="0.0.0.0", port=8000, reload=True)
