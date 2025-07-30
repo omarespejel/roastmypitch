@@ -122,9 +122,11 @@ export default function Home() {
   useEffect(() => {
     if (!session) return
 
-    // Initialize Socket.io connection
+    // Initialize Socket.io connection with enhanced configuration
     socket.current = io(apiUrl, {
-      query: { founderId }
+      query: { founderId },
+      transports: ['polling', 'websocket'], // Start with polling, upgrade to websocket
+      forceNew: true
     })
 
     // Load messages from Supabase
