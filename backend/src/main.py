@@ -497,4 +497,4 @@ if __name__ != "__main__":
 # For local development (CLI run)
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("src.main:socket_app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.main:socket_app", host="0.0.0.0", port=8000)
