@@ -10,6 +10,7 @@ import chromadb
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import socketio
 from llama_index.core import Settings, SimpleDirectoryReader, VectorStoreIndex
 # --- 1. IMPORT THE SPECIFIC CHAT ENGINE CLASS ---
@@ -168,8 +169,11 @@ allowed_origins = []
 
 # Handle FRONTEND_URL (from Render service or local dev)
 if FRONTEND_URL:
-    # Ensure production URLs have https:// prefix
-    if FRONTEND_URL.startswith("starknet-founders-bot-frontend") and not FRONTEND_URL.startswith("http"):
+    # Ensure production URLs have https:// prefix for Render services
+    if FRONTEND_URL.endswith(".onrender.com") and not FRONTEND_URL.startswith("http"):
+        FRONTEND_URL = f"https://{FRONTEND_URL}"
+    # Handle case where Render gives us just the hostname
+    elif "starknet-founders-bot-frontend" in FRONTEND_URL and not FRONTEND_URL.startswith("http"):
         FRONTEND_URL = f"https://{FRONTEND_URL}"
     allowed_origins.append(FRONTEND_URL)
 
@@ -178,8 +182,19 @@ if PRODUCTION_FRONTEND:
     allowed_origins.append(PRODUCTION_FRONTEND)
 
 # Always allow localhost for development
-if "http://localhost:3000" not in allowed_origins:
-    allowed_origins.append("http://localhost:3000")
+development_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",  # In case of port conflicts
+]
+for dev_origin in development_origins:
+    if dev_origin not in allowed_origins:
+        allowed_origins.append(dev_origin)
+
+# Add the specific Render frontend URL as fallback
+render_frontend = "https://starknet-founders-bot-frontend-zc93.onrender.com"
+if render_frontend not in allowed_origins:
+    allowed_origins.append(render_frontend)
 
 # Log allowed origins for debugging
 logger.info(f"CORS allowed origins: {allowed_origins}")
@@ -191,18 +206,60 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods including OPTIONS
-    allow_headers=["*"],  # Allow all headers for preflight requests
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["*"]
 )
 
-# Create Socket.IO server with CORS support
+# Create Socket.IO server with explicit CORS configuration
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=allowed_origins
+    cors_allowed_origins=[
+        "https://starknet-founders-bot-frontend-zc93.onrender.com",
+        "http://localhost:3000",
+        "https://localhost:3000",  # In case of local HTTPS
+        "http://127.0.0.1:3000"
+    ]
 )
 
 # Wrap FastAPI app with Socket.IO
 socket_app = socketio.ASGIApp(sio, app)
+
+# Add exception handler with CORS for error responses
+@app.exception_handler(400)
+async def bad_request_handler(request: Request, exc):
+    response = JSONResponse(
+        status_code=400,
+        content={"detail": "Bad Request"}
+    )
+    
+    # Add CORS headers to error responses
+    origin = request.headers.get('origin')
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
+
+# Add explicit OPTIONS handler for preflight requests
+@app.options("/{path:path}")
+async def options_handler(request: Request, path: str):
+    """Handle preflight OPTIONS requests"""
+    origin = request.headers.get('origin')
+    
+    headers = {
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Max-Age": "86400"
+    }
+    
+    if origin in allowed_origins:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    
+    return JSONResponse(content={}, headers=headers)
 
 @sio.event
 async def connect(sid, environ):
