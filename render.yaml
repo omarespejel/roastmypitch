@@ -13,10 +13,7 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: starknet-founders-bot-frontend
-          property: host  # Changed from HOST_URL to host
+        value: https://starknet-founders-bot-frontend-zc93.onrender.com
       - key: PRODUCTION_FRONTEND_URL
         sync: false
       - key: PYTHON_VERSION
@@ -31,8 +28,8 @@ services:
     rootDir: frontend
     region: frankfurt
     plan: starter
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: bun install && bun run build
+    startCommand: bun start
     envVars:
       - key: GITHUB_ID
         sync: false
@@ -43,7 +40,7 @@ services:
       - key: NEXTAUTH_SECRET
         sync: false
       - key: NEXT_PUBLIC_API_URL
-        sync: false  # Set manually since we need https:// prefix
+        value: https://starknet-founders-bot-backend-zc93.onrender.com
       - key: NEXT_PUBLIC_SUPABASE_URL
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
