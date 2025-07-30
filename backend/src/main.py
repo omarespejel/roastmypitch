@@ -163,10 +163,28 @@ app = FastAPI(
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 PRODUCTION_FRONTEND = os.getenv("PRODUCTION_FRONTEND_URL", "")
 
-# Build allowed origins list
-allowed_origins = [FRONTEND_URL]
+# Build allowed origins list with proper protocol handling
+allowed_origins = []
+
+# Handle FRONTEND_URL (from Render service or local dev)
+if FRONTEND_URL:
+    # Ensure production URLs have https:// prefix
+    if FRONTEND_URL.startswith("starknet-founders-bot-frontend") and not FRONTEND_URL.startswith("http"):
+        FRONTEND_URL = f"https://{FRONTEND_URL}"
+    allowed_origins.append(FRONTEND_URL)
+
+# Handle additional production frontend URL
 if PRODUCTION_FRONTEND:
     allowed_origins.append(PRODUCTION_FRONTEND)
+
+# Always allow localhost for development
+if "http://localhost:3000" not in allowed_origins:
+    allowed_origins.append("http://localhost:3000")
+
+# Log allowed origins for debugging
+logger.info(f"CORS allowed origins: {allowed_origins}")
+logger.info(f"Raw FRONTEND_URL env var: {os.getenv('FRONTEND_URL')}")
+logger.info(f"Raw PRODUCTION_FRONTEND_URL env var: {os.getenv('PRODUCTION_FRONTEND_URL')}")
 
 # IMPORTANT: Add CORS middleware BEFORE SocketManager to ensure OPTIONS requests work
 app.add_middleware(
@@ -188,11 +206,16 @@ socket_app = socketio.ASGIApp(sio, app)
 
 @sio.event
 async def connect(sid, environ):
-    logger.info(f"Client {sid} connected")
+    origin = environ.get('HTTP_ORIGIN', 'Unknown')
+    logger.info(f"Client {sid} connected from origin: {origin}")
 
 @sio.event
 async def disconnect(sid):
     logger.info(f"Client {sid} disconnected")
+
+@sio.event
+async def connect_error(sid, data):
+    logger.error(f"Socket.IO connection error for {sid}: {data}")
 
 @sio.event
 async def user_typing(sid, data):
