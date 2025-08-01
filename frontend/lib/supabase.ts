@@ -16,14 +16,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(
   supabaseUrl || 'placeholder-url', 
-  supabaseAnonKey || 'placeholder-key',
-  {
-    auth: {
-      flowType: 'pkce',
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  }
+  supabaseAnonKey || 'placeholder-key'
 )
 
 // Types for our tables

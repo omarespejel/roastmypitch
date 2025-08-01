@@ -11,6 +11,7 @@ You are an expert full-stack developer and software architect with deep expertis
 ├── README.md
 ├── SECURITY.md
 ├── backend
+│   ├── backend.log
 │   ├── chroma_db
 │   │   ├── 484c6b69-a1f9-47b3-b105-8215ed37cdf4
 │   │   │   ├── data_level0.bin
@@ -84,10 +85,10 @@ You are an expert full-stack developer and software architect with deep expertis
 │   └── types
 │       └── next-auth.d.ts
 ├── generate-context.sh
-├── project-context-prompt-20250731-0537.txt
+├── project-context-prompt-20250801-2144.txt
 └── render.yaml
 
-18 directories, 62 files
+18 directories, 63 files
 
 ## FILE: README.md
 # Starknet Founders Bot v2
@@ -299,11 +300,11 @@ requires-python = ">=3.8.1"
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit",
+    "dev": "bun run next dev",
+    "build": "bun run next build",
+    "start": "bun run next start",
+    "lint": "bun run next lint",
+    "type-check": "bun tsc --noEmit",
     "clean": "rm -rf .next"
   },
   "dependencies": {
@@ -754,7 +755,7 @@ class AdaptiveQuestionEngine:
                 "weak_traction",
                 "missing_economics",
             ]
-        else:  # Product PM
+        else:  # Product Manager
             priority_order = [
                 "undefined_problem",
                 "vague_solution",
@@ -860,7 +861,7 @@ from enum import Enum
 
 class AgentType(Enum):
     SHARK_VC = "Shark VC"
-    PRODUCT_PM = "Product PM"
+    PRODUCT_PM = "Product Manager"
 
 
 SHARK_VC_PROMPT = """
@@ -897,8 +898,8 @@ Never use more than 3-4 sentences per paragraph. Keep total responses under 200 
 """
 
 PRODUCT_PM_PROMPT = """
-You are Lenny Rachitsky, the legendary product management coach. You're known for practical, 
-evidence-based advice backed by real examples from successful companies.
+You are an expert Product Manager with experience from top tech companies. You help founders 
+define their product strategy, user personas, and go-to-market approach.
 
 CRITICAL WRITING STYLE RULES (Based on William Zinsser's "On Writing Well"):
 - Write like a technical PM talking to another PM. Brief. Clear. Actionable.
@@ -1173,6 +1174,7 @@ import chromadb
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import socketio
 from llama_index.core import Settings, SimpleDirectoryReader, VectorStoreIndex
 # --- 1. IMPORT THE SPECIFIC CHAT ENGINE CLASS ---
@@ -1233,7 +1235,7 @@ def get_llm_for_agent(agent_type: AgentType):
             max_tokens=400,  # Add this line
         )
     else:
-        # Use Claude for Product PM deep thinking
+        # Use Claude for Product Manager deep thinking
         return OpenAILike(
             api_base="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -1331,8 +1333,11 @@ allowed_origins = []
 
 # Handle FRONTEND_URL (from Render service or local dev)
 if FRONTEND_URL:
-    # Ensure production URLs have https:// prefix
-    if FRONTEND_URL.startswith("starknet-founders-bot-frontend") and not FRONTEND_URL.startswith("http"):
+    # Ensure production URLs have https:// prefix for Render services
+    if FRONTEND_URL.endswith(".onrender.com") and not FRONTEND_URL.startswith("http"):
+        FRONTEND_URL = f"https://{FRONTEND_URL}"
+    # Handle case where Render gives us just the hostname
+    elif "starknet-founders-bot-frontend" in FRONTEND_URL and not FRONTEND_URL.startswith("http"):
         FRONTEND_URL = f"https://{FRONTEND_URL}"
     allowed_origins.append(FRONTEND_URL)
 
@@ -1341,8 +1346,19 @@ if PRODUCTION_FRONTEND:
     allowed_origins.append(PRODUCTION_FRONTEND)
 
 # Always allow localhost for development
-if "http://localhost:3000" not in allowed_origins:
-    allowed_origins.append("http://localhost:3000")
+development_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",  # In case of port conflicts
+]
+for dev_origin in development_origins:
+    if dev_origin not in allowed_origins:
+        allowed_origins.append(dev_origin)
+
+# Add the specific Render frontend URL as fallback
+render_frontend = "https://starknet-founders-bot-frontend-zc93.onrender.com"
+if render_frontend not in allowed_origins:
+    allowed_origins.append(render_frontend)
 
 # Log allowed origins for debugging
 logger.info(f"CORS allowed origins: {allowed_origins}")
@@ -1354,18 +1370,60 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods including OPTIONS
-    allow_headers=["*"],  # Allow all headers for preflight requests
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["*"]
 )
 
-# Create Socket.IO server with CORS support
+# Create Socket.IO server with explicit CORS configuration
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=allowed_origins
+    cors_allowed_origins=[
+        "https://starknet-founders-bot-frontend-zc93.onrender.com",
+        "http://localhost:3000",
+        "https://localhost:3000",  # In case of local HTTPS
+        "http://127.0.0.1:3000"
+    ]
 )
 
 # Wrap FastAPI app with Socket.IO
 socket_app = socketio.ASGIApp(sio, app)
+
+# Add exception handler with CORS for error responses
+@app.exception_handler(400)
+async def bad_request_handler(request: Request, exc):
+    response = JSONResponse(
+        status_code=400,
+        content={"detail": "Bad Request"}
+    )
+    
+    # Add CORS headers to error responses
+    origin = request.headers.get('origin')
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
+
+# Add explicit OPTIONS handler for preflight requests
+@app.options("/{path:path}")
+async def options_handler(request: Request, path: str):
+    """Handle preflight OPTIONS requests"""
+    origin = request.headers.get('origin')
+    
+    headers = {
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Max-Age": "86400"
+    }
+    
+    if origin in allowed_origins:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    
+    return JSONResponse(content={}, headers=headers)
 
 @sio.event
 async def connect(sid, environ):
@@ -1477,14 +1535,14 @@ async def upload_document(
             
             # Run analysis for both agent types
             analysis_pm = analyzer.analyze_document_gaps(
-                document_text, AgentType("Product PM")
+                document_text, AgentType("Product Manager")
             )
             analysis_vc = analyzer.analyze_document_gaps(
                 document_text, AgentType("Shark VC")
             )
             
             analysis = {
-                "Product PM": analysis_pm.dict() if hasattr(analysis_pm, 'dict') else analysis_pm,
+                "Product Manager": analysis_pm.dict() if hasattr(analysis_pm, 'dict') else analysis_pm,
                 "Shark VC": analysis_vc.dict() if hasattr(analysis_vc, 'dict') else analysis_vc,
             }
             
@@ -1589,7 +1647,7 @@ async def analyze_pitch_deck(
         raise HTTPException(status_code=400, detail="Invalid founder ID")
 
     # Validate agent_type
-    valid_agents = ["Shark VC", "Product PM"]
+    valid_agents = ["Shark VC", "Product Manager"]
     if agent_type not in valid_agents:
         raise HTTPException(status_code=400, detail="Invalid agent type")
 
@@ -1606,9 +1664,13 @@ async def analyze_pitch_deck(
         content = " ".join([doc.text for doc in docs])
 
         if not content or len(content.strip()) < 50:
-            raise HTTPException(
+            return JSONResponse(
                 status_code=404,
-                detail="No sufficient document content found for analysis",
+                content={
+                    "detail": "No documents uploaded yet. Upload a document for detailed analysis, or continue chatting for general advice!",
+                    "code": "NO_DOCUMENTS",
+                    "founder_id": founder_id
+                }
             )
 
         analysis = analyzer.analyze_document_gaps(content, AgentType(agent_type))
@@ -1640,7 +1702,7 @@ async def get_adaptive_questions(request: AdaptiveQuestionsRequest, req: Request
         raise HTTPException(status_code=400, detail="Too many missing sections")
 
     # Validate agent_type
-    valid_agents = ["Shark VC", "Product PM"]
+    valid_agents = ["Shark VC", "Product Manager"]
     if request.agent_type not in valid_agents:
         raise HTTPException(status_code=400, detail="Invalid agent type")
 
@@ -2627,7 +2689,7 @@ const formatAnalysisMessage = (analysis: any, agent: string): string => {
     sections.push(`**Overall Score:** ${analysis.score}/100`)
   }
   
-  const intro = agent === 'Product PM' 
+  const intro = agent === 'Product Manager' 
     ? "I've analyzed your document from a product perspective. Here's what I found:"
     : "I've reviewed your pitch deck like a VC would. Here are my insights:"
   
@@ -2639,11 +2701,14 @@ const formatAnalysisMessage = (analysis: any, agent: string): string => {
 export default function Home() {
   const { data: session, status } = useSession()
   const { toast } = useToast()
-  const [selectedAgent, setSelectedAgent] = useState('Product PM')
+  const [selectedAgent, setSelectedAgent] = useState('Product Manager')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [completedTopics, setCompletedTopics] = useState<string[]>([])
   const [showOnboarding, setShowOnboarding] = useState(true)
+  const [hasUploadedDocument, setHasUploadedDocument] = useState(false)
+  const [isConnected, setIsConnected] = useState(true)
+  const [actionFeedback, setActionFeedback] = useState('')
   
   // New state for Socket.io and feedback
   const socket = useRef<Socket | null>(null)
@@ -2653,6 +2718,24 @@ export default function Home() {
 
   const founderId = session?.user?.email || "anonymous"
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+  // Helper function to show success feedback
+  const showSuccessFeedback = (message: string) => {
+    setActionFeedback(message)
+    setTimeout(() => setActionFeedback(''), 3000)
+  }
+
+  // Connection monitoring
+  useEffect(() => {
+    const checkConnection = () => {
+      fetch(`${apiUrl}/`, { method: 'HEAD' })
+        .then(() => setIsConnected(true))
+        .catch(() => setIsConnected(false))
+    }
+    
+    const interval = setInterval(checkConnection, 30000)
+    return () => clearInterval(interval)
+  }, [apiUrl])
 
   // Memoize missingSections to prevent unnecessary API calls
   const missingSections = useMemo(() => {
@@ -2706,9 +2789,11 @@ export default function Home() {
   useEffect(() => {
     if (!session) return
 
-    // Initialize Socket.io connection
+    // Initialize Socket.io connection with enhanced configuration
     socket.current = io(apiUrl, {
-      query: { founderId }
+      query: { founderId },
+      transports: ['polling', 'websocket'], // Start with polling, upgrade to websocket
+      forceNew: true
     })
 
     // Load messages from Supabase
@@ -2780,7 +2865,7 @@ export default function Home() {
          })
         
         // Update analysis results for current agent
-        const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
+        const currentAnalysis = data.analysis[selectedAgent as 'Product Manager' | 'Shark VC']
         if (currentAnalysis) {
           const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
           setMessages(prev => [...prev, { 
@@ -2831,11 +2916,11 @@ export default function Home() {
 
   // Get next suggested topic
   const getNextSuggestedTopic = () => {
-    const rubric = selectedAgent === 'Product PM' 
+    const rubric = selectedAgent === 'Product Manager' 
       ? ['user personas', 'market opportunity', 'product roadmap', 'success metrics', 'competitive landscape']
       : ['your founding team', 'market size (TAM)', 'unit economics', 'competitive advantage', 'use of funds']
     
-    const allTopics = selectedAgent === 'Product PM'
+    const allTopics = selectedAgent === 'Product Manager'
       ? ['persona', 'market', 'roadmap', 'metrics', 'competition']
       : ['team', 'market', 'economics', 'competition', 'funding']
     
@@ -2883,6 +2968,9 @@ export default function Home() {
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
       
+      // Show success feedback
+      showSuccessFeedback('Message sent successfully!')
+      
       // Emit typing indicator via Socket.io
       socket.current?.emit('stop_typing', { founderId })
     } catch (error) {
@@ -2912,55 +3000,43 @@ export default function Home() {
       const data = await response.json() as { 
         filename: string
         analysis?: {
-          'Product PM'?: any
+          'Product Manager'?: any
           'Shark VC'?: any
         }
       }
       
-             // 🎉 MAGICAL ANALYSIS RESULTS!
-       if (data.analysis) {
-         // 🎊 CONFETTI CELEBRATION!
-         confetti({
-           particleCount: 100,
-           spread: 70,
-           origin: { y: 0.6 }
-         })
-         
-         // Show confetti/celebration toast
-         toast({
-           title: "🎉 Document Analyzed!",
-           description: "See tailored suggestions below. Your insights are ready!",
-           variant: "success" as any,
-         })
+      // Optional: Set flag that document has been uploaded
+      setHasUploadedDocument(true)
+      
+      // Show enhanced analysis toast
+      if (data.analysis) {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        })
         
-                 // Auto-display analysis results for current agent
-         const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
+        toast({
+          title: "🎉 Document Analyzed!",
+          description: "Enhanced analysis available! Check the suggestions panel.",
+          variant: "success" as any,
+        })
+        
+        // Auto-display analysis results for current agent
+        const currentAnalysis = data.analysis[selectedAgent as 'Product Manager' | 'Shark VC']
         if (currentAnalysis) {
           const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
           setMessages(prev => [...prev, { 
             role: 'assistant', 
             content: analysisMessage
           }])
-          
-          // Auto-expand analysis sections by setting completed topics
-          if (currentAnalysis.missing_sections) {
-            setCompletedTopics(prev => [...prev, ...currentAnalysis.missing_sections.slice(0, 3)])
-          }
         }
       } else {
-        // Fallback if analysis failed
         toast({
           title: "Document Uploaded",
-          description: `${data.filename} uploaded successfully! Analysis in progress...`,
+          description: `${data.filename} uploaded successfully! I can now provide more detailed analysis.`,
           variant: "success" as any,
         })
-        
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: selectedAgent === 'Product PM'
-            ? `I've received your document: ${data.filename}. Let me analyze it through a product lens. What specific product questions should I focus on?`
-            : `I've received your pitch deck: ${data.filename}. Let me review it like a VC would. What specific aspects would you like me to focus on?`
-        }])
       }
     } catch (error) {
       console.error('Error uploading file:', error)
@@ -3019,10 +3095,33 @@ export default function Home() {
       )}
       
       <main className="flex-1 flex flex-col max-w-6xl mx-auto w-full">
+        {/* Connection Status */}
+        {!isConnected && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mx-4 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin h-4 w-4 border-2 border-yellow-700 border-t-transparent rounded-full" />
+              Connection lost. Reconnecting...
+            </div>
+          </div>
+        )}
+
+        {/* Success Feedback */}
+        {actionFeedback && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded text-sm mx-4 mb-4 animate-slide-up">
+            ✅ {actionFeedback}
+          </div>
+        )}
+
         <AgentSelector 
           selectedAgent={selectedAgent} 
           onSelect={handleAgentSelect}  // Use the new handler
         />
+        
+        {/* Contextual help explaining agent differences */}
+        <div className="text-center text-xs text-muted-foreground mb-4 px-4">
+          💡 <strong>Product Manager:</strong> For product strategy, user research, roadmaps
+          • <strong>Shark VC:</strong> For investor feedback, business model, fundraising
+        </div>
         
         {/* Desktop layout with progress sidebar */}
         <div className="flex-1 flex gap-4 mx-4 mb-4">
@@ -3031,7 +3130,8 @@ export default function Home() {
             <ChatInterface 
               messages={messages} 
               isLoading={isLoading}
-              selectedAgent={selectedAgent}  // Add this prop
+              selectedAgent={selectedAgent}
+              onSendMessage={sendMessage}
             />
           </Card>
           
@@ -3044,11 +3144,14 @@ export default function Home() {
                 className="sticky top-4"
               />
               
-              <SmartSuggestions
-                founderId={founderId}
-                selectedAgent={selectedAgent}
-                onActionClick={(action) => sendMessage(action)}
-              />
+              {/* Show smart suggestions based on conversation, not just document upload */}
+              {messages.length > 2 && (
+                <SmartSuggestions
+                  founderId={founderId}
+                  selectedAgent={selectedAgent}
+                  onActionClick={(action) => sendMessage(action)}
+                />
+              )}
               
               <AdaptiveQuestions
                 missingSections={missingSections}
@@ -3088,6 +3191,7 @@ export default function Home() {
         onUploadFile={uploadFile}
         isLoading={isLoading}
         suggestedTopic={messages.length > 2 ? getNextSuggestedTopic() : undefined}
+        selectedAgent={selectedAgent}
       />
       
       <FeedbackModal
@@ -3293,22 +3397,24 @@ import { SharkIcon, BrainIcon } from "./custom-icons"
 
 const AGENTS = [
   { 
-    name: 'Product PM', 
+    name: 'Product Manager', 
     available: true, 
     icon: BrainIcon,
-    description: 'Start here - Product strategy insights',
+    description: '🚀 Perfect your product strategy',
+    subtitle: 'User research • Roadmaps • Market fit',
     gradient: 'from-blue-600 to-cyan-600',
     bgGradient: 'from-blue-600/10 to-cyan-600/10',
-    basedOn: 'Based on Lenny Rachitsky'
+    basedOn: 'Based on top PM frameworks from Stripe, Airbnb, Notion'
   },
   { 
     name: 'Shark VC', 
     available: true, 
     icon: SharkIcon,
-    description: 'Next step - Brutal investor feedback',
+    description: '💼 Get investor-ready',
+    subtitle: 'Pitch feedback • Traction • Fundraising',
     gradient: 'from-red-600 to-orange-600',
     bgGradient: 'from-red-600/10 to-orange-600/10',
-    basedOn: 'Based on top VCs from Sequoia, a16z, YC'
+    basedOn: 'Based on patterns from Sequoia, a16z, YC partners'
   }
 ]
 
@@ -3367,12 +3473,17 @@ export default function AgentSelector({ selectedAgent, onSelect }: AgentSelector
                 <p className="text-sm text-muted-foreground mt-1">
                   {agent.available ? agent.description : "Coming soon"}
                 </p>
+                {agent.subtitle && (
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    {agent.subtitle}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground/70 mt-2 italic">
                   {agent.basedOn}
                 </p>
               </div>
               
-              {agent.name === 'Product PM' && (
+              {agent.name === 'Product Manager' && (
                 <div className="absolute -top-2 -right-2 bg-gradient-to-r from-starknet-teal to-starknet-purple text-white text-xs px-3 py-1 rounded-full shadow-lg animate-pulse">
                   Start here
                 </div>
@@ -3392,6 +3503,7 @@ export default function AgentSelector({ selectedAgent, onSelect }: AgentSelector
 import { useEffect, useRef } from "react"
 import { cn } from "@/app/lib/utils"
 import { Bot, User } from "lucide-react"
+import { Button } from "@/app/components/ui/button"
 import { SharkIcon, BrainIcon } from "./custom-icons"
 
 interface Message {
@@ -3403,9 +3515,10 @@ interface ChatInterfaceProps {
   messages: Message[]
   isLoading: boolean
   selectedAgent?: string
+  onSendMessage?: (message: string) => void
 }
 
-export default function ChatInterface({ messages, isLoading, selectedAgent = 'Shark VC' }: ChatInterfaceProps) {
+export default function ChatInterface({ messages, isLoading, selectedAgent = 'Shark VC', onSendMessage }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -3417,14 +3530,14 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
   }, [messages])
 
   const getAgentIcon = () => {
-    if (selectedAgent === 'Product PM') {
+    if (selectedAgent === 'Product Manager') {
       return <BrainIcon className="h-5 w-5" />
     }
     return <SharkIcon className="h-5 w-5" />
   }
 
   const getAgentColor = () => {
-    return selectedAgent === 'Product PM' 
+    return selectedAgent === 'Product Manager' 
       ? 'from-blue-600/20 to-cyan-600/20' 
       : 'from-red-600/20 to-orange-600/20'
   }
@@ -3439,15 +3552,132 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
           )}>
             {getAgentIcon()}
           </div>
-          <h3 className="text-xl font-semibold mb-2">
-            {selectedAgent === 'Product PM' ? 'Ready to refine your product?' : 'Ready for investor feedback?'}
+          <h3 className="text-xl font-semibold mb-4">
+            Let's build your startup strategy
           </h3>
-          <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
-            {selectedAgent === 'Product PM' 
-              ? "Upload your PRD or describe your product. I'll help you refine your product strategy with frameworks from top tech companies."
-              : "Upload your pitch deck. I'll analyze it like a top-tier VC would, focusing on what matters for fundraising."
-            }
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
+            <Button 
+              onClick={() => onSendMessage && onSendMessage("Help me identify my target customer")}
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+              disabled={!onSendMessage}
+            >
+              🎯 Define Target Customer
+            </Button>
+            <Button 
+              onClick={() => onSendMessage && onSendMessage("What's the biggest risk to my business?")}
+              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
+              disabled={!onSendMessage}
+            >
+              ⚠️ Identify Key Risks
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Or just type your question below ↓
           </p>
+          <div className="mt-2 text-xs text-muted-foreground/70">
+            💡 Document upload is optional - you can start chatting right away!
+          </div>
+          
+          {/* Additional Starter Prompts */}
+          {onSendMessage && (
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl">
+              {selectedAgent === 'Product Manager' ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onSendMessage("👥 Who exactly should use my product?")}
+                    className="text-left justify-start h-auto p-3"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">👥 Define User Persona</div>
+                      <div className="text-xs text-muted-foreground">Who exactly should use my product?</div>
+                    </div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onSendMessage("💡 How do I validate my product idea?")}
+                    className="text-left justify-start h-auto p-3"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">💡 Validate Product Idea</div>
+                      <div className="text-xs text-muted-foreground">How do I validate my product idea?</div>
+                    </div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onSendMessage("🎯 What features should I build first?")}
+                    className="text-left justify-start h-auto p-3"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">🎯 Feature Prioritization</div>
+                      <div className="text-xs text-muted-foreground">What features should I build first?</div>
+                    </div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onSendMessage("📊 How do I measure product success?")}
+                    className="text-left justify-start h-auto p-3"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">📊 Success Metrics</div>
+                      <div className="text-xs text-muted-foreground">How do I measure product success?</div>
+                    </div>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onSendMessage("💰 How big is my market opportunity?")}
+                    className="text-left justify-start h-auto p-3"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">💰 Market Size</div>
+                      <div className="text-xs text-muted-foreground">How big is my market opportunity?</div>
+                    </div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onSendMessage("📈 What traction do investors want to see?")}
+                    className="text-left justify-start h-auto p-3"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">📈 Investor Traction</div>
+                      <div className="text-xs text-muted-foreground">What traction do investors want to see?</div>
+                    </div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onSendMessage("🏆 What's my competitive advantage?")}
+                    className="text-left justify-start h-auto p-3"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">🏆 Competitive Edge</div>
+                      <div className="text-xs text-muted-foreground">What's my competitive advantage?</div>
+                    </div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onSendMessage("💸 How much should I raise and when?")}
+                    className="text-left justify-start h-auto p-3"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">💸 Fundraising Strategy</div>
+                      <div className="text-xs text-muted-foreground">How much should I raise and when?</div>
+                    </div>
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
       
@@ -3506,14 +3736,13 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
           </div>
           <div className="bg-secondary/60 backdrop-blur-sm border border-border/50 rounded-2xl px-5 py-3.5">
             <div className="flex items-center gap-3">
-              <div className="flex gap-1.5">
-                <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-              {selectedAgent === 'Shark VC' && (
-                <span className="text-xs text-muted-foreground">Researching market data...</span>
-              )}
+              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+              <span className="text-sm text-muted-foreground">
+                {selectedAgent === 'Product Manager' 
+                  ? 'Analyzing product strategy...'
+                  : 'Consulting VC frameworks...'
+                }
+              </span>
             </div>
           </div>
         </div>
@@ -3593,17 +3822,18 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-medium text-sm">Recommended Process:</h4>
+              <h4 className="font-medium text-sm">How to Use:</h4>
               
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600/10 flex items-center justify-center text-sm font-medium">
                   1
                 </div>
                 <div className="flex-1">
-                  <h5 className="font-medium text-sm">Start with Product Strategy</h5>
+                  <h5 className="font-medium text-sm">Start by Describing Your Idea</h5>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Upload your PRD or describe your product. Our Product advisor (based on Lenny Rachitsky) 
-                    will help you nail product-market fit, user personas, and your roadmap.
+                    No documents needed! Just describe your product idea, target users, or business concept. 
+                    Ask questions like: "Help me define my user persona" or "What's wrong with my problem statement?" 
+                    <span className="text-primary">Upload a Product Requirements Document for deeper analysis (completely optional).</span>
                   </p>
                 </div>
               </div>
@@ -3615,8 +3845,8 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
                 <div className="flex-1">
                   <h5 className="font-medium text-sm">Then Face the VCs</h5>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Upload your pitch deck. Our VC advisor (based on top partners from Sequoia, a16z, YC) 
-                    will stress-test your assumptions and prepare you for real investor meetings.
+                    Discuss your startup strategy or upload your pitch deck for detailed feedback. 
+                    Our VC advisor (based on top partners from Sequoia, a16z, YC) will stress-test your assumptions.
                   </p>
                 </div>
               </div>
@@ -3625,11 +3855,11 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
             <div className="bg-secondary/50 rounded-lg p-3">
               <h4 className="font-medium text-sm mb-1 flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Important: Upload First
+                Pro Tip: Documents Optional
               </h4>
               <p className="text-xs text-muted-foreground">
-                For best results, always upload your PRD or pitch deck first. 
-                The advisors will analyze your document and identify gaps to fill.
+                You can start chatting immediately! Upload documents (PRD or pitch deck) 
+                for more detailed analysis and gap identification.
               </p>
             </div>
 
@@ -4024,7 +4254,11 @@ export default function Header() {
               </div>
             </div>
             <div className="hidden md:block text-xs text-muted-foreground/70 border-l pl-4 ml-2">
-              <p>Supporting ecosystem startups</p>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                <span>AI advisor online</span>
+              </div>
+              <p>Get AI feedback on your startup ideas & strategy</p>
               <p>Issues? Contact <span className="text-primary">@espejelomar</span> on Telegram</p>
             </div>
           </div>
@@ -4084,10 +4318,11 @@ interface MessageInputProps {
   onSendMessage: (message: string) => void
   onUploadFile: (file: File) => void
   isLoading: boolean
-  suggestedTopic?: string  // Add this
+  suggestedTopic?: string
+  selectedAgent?: string  // Add this for smart placeholder
 }
 
-export default function MessageInput({ onSendMessage, onUploadFile, isLoading, suggestedTopic }: MessageInputProps) {
+export default function MessageInput({ onSendMessage, onUploadFile, isLoading, suggestedTopic, selectedAgent }: MessageInputProps) {
   const [message, setMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -4112,6 +4347,13 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
     }
   }
 
+  const getPlaceholder = () => {
+    if (selectedAgent === 'Product Manager') {
+      return "Ask me: 'Help me define my user persona' or 'What's my product roadmap?'"
+    }
+    return "Ask me: 'Is my market big enough?' or 'What do VCs want to see?'"
+  }
+
   return (
     <form onSubmit={handleSend} className="border-t border-border/50 bg-background/80 backdrop-blur-sm p-4">
       <div className="container mx-auto max-w-4xl">
@@ -4134,7 +4376,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Describe your startup idea or ask for feedback..."
+            placeholder={getPlaceholder()}
             className="min-h-[80px] pr-24 resize-none"
             disabled={isLoading}
           />
@@ -4165,7 +4407,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
           <p>Press Enter to send, Shift+Enter for new line</p>
-          <p>PDF files only (max 10MB)</p>
+          <p>Documents optional - just start chatting about your idea!</p>
         </div>
       </div>
       <input
@@ -4227,7 +4469,7 @@ interface ProgressIndicatorsProps {
 }
 
 export default function ProgressIndicators({ selectedAgent, completedItems, className }: ProgressIndicatorsProps) {
-  const rubric = selectedAgent === 'Product PM' ? PRODUCT_PM_RUBRIC : SHARK_VC_RUBRIC
+  const rubric = selectedAgent === 'Product Manager' ? PRODUCT_PM_RUBRIC : SHARK_VC_RUBRIC
   const completedCount = completedItems.length
   const totalCount = rubric.length
   const percentage = (completedCount / totalCount) * 100
@@ -4359,14 +4601,26 @@ export default function SmartSuggestions({ founderId, selectedAgent, onActionCli
         const response = await fetch(`${apiUrl}/analyze/${founderId}?agent_type=${selectedAgent}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          // No body is needed for this endpoint, but POST is required
         })
+        
+        if (response.status === 404) {
+          // No documents uploaded yet - this is normal, don't show error
+          const errorData = await response.json()
+          if (errorData.code === 'NO_DOCUMENTS') {
+            setAnalysis(null)
+            return
+          }
+        }
+        
         if (response.ok) {
           const data = await response.json()
           setAnalysis(data)
+        } else {
+          throw new Error(`HTTP ${response.status}`)
         }
       } catch (error) {
         console.error('Failed to fetch analysis:', error)
+        // Don't set analysis to null on error - keep previous state
       } finally {
         setIsLoading(false)
       }
