@@ -7,22 +7,24 @@ import { SharkIcon, BrainIcon } from "./custom-icons"
 
 const AGENTS = [
   { 
-    name: 'Product PM', 
+    name: 'Product Manager', 
     available: true, 
     icon: BrainIcon,
-    description: 'Start here - Product strategy insights',
+    description: '🚀 Perfect your product strategy',
+    subtitle: 'User research • Roadmaps • Market fit',
     gradient: 'from-blue-600 to-cyan-600',
     bgGradient: 'from-blue-600/10 to-cyan-600/10',
-    basedOn: 'Based on top Product leaders and frameworks'
+    basedOn: 'Based on top PM frameworks from Stripe, Airbnb, Notion'
   },
   { 
     name: 'Shark VC', 
     available: true, 
     icon: SharkIcon,
-    description: 'Next step - Brutal investor feedback',
+    description: '💼 Get investor-ready',
+    subtitle: 'Pitch feedback • Traction • Fundraising',
     gradient: 'from-red-600 to-orange-600',
     bgGradient: 'from-red-600/10 to-orange-600/10',
-    basedOn: 'Based on top VCs from Sequoia, a16z, YC'
+    basedOn: 'Based on patterns from Sequoia, a16z, YC partners'
   }
 ]
 
@@ -81,12 +83,17 @@ export default function AgentSelector({ selectedAgent, onSelect }: AgentSelector
                 <p className="text-sm text-muted-foreground mt-1">
                   {agent.available ? agent.description : "Coming soon"}
                 </p>
+                {agent.subtitle && (
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    {agent.subtitle}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground/70 mt-2 italic">
                   {agent.basedOn}
                 </p>
               </div>
               
-              {agent.name === 'Product PM' && (
+              {agent.name === 'Product Manager' && (
                 <div className="absolute -top-2 -right-2 bg-gradient-to-r from-starknet-teal to-starknet-purple text-white text-xs px-3 py-1 rounded-full shadow-lg animate-pulse">
                   Start here
                 </div>

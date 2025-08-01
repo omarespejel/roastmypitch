@@ -71,7 +71,7 @@ class AdaptiveQuestionEngine:
                 "weak_traction",
                 "missing_economics",
             ]
-        else:  # Product PM
+        else:  # Product Manager
             priority_order = [
                 "undefined_problem",
                 "vague_solution",

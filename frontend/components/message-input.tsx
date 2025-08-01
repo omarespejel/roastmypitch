@@ -10,10 +10,11 @@ interface MessageInputProps {
   onSendMessage: (message: string) => void
   onUploadFile: (file: File) => void
   isLoading: boolean
-  suggestedTopic?: string  // Add this
+  suggestedTopic?: string
+  selectedAgent?: string  // Add this for smart placeholder
 }
 
-export default function MessageInput({ onSendMessage, onUploadFile, isLoading, suggestedTopic }: MessageInputProps) {
+export default function MessageInput({ onSendMessage, onUploadFile, isLoading, suggestedTopic, selectedAgent }: MessageInputProps) {
   const [message, setMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -38,6 +39,13 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
     }
   }
 
+  const getPlaceholder = () => {
+    if (selectedAgent === 'Product Manager') {
+      return "Ask me: 'Help me define my user persona' or 'What's my product roadmap?'"
+    }
+    return "Ask me: 'Is my market big enough?' or 'What do VCs want to see?'"
+  }
+
   return (
     <form onSubmit={handleSend} className="border-t border-border/50 bg-background/80 backdrop-blur-sm p-4">
       <div className="container mx-auto max-w-4xl">
@@ -60,7 +68,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me to help define your user persona, problem statement, market strategy, or just describe your idea..."
+            placeholder={getPlaceholder()}
             className="min-h-[80px] pr-24 resize-none"
             disabled={isLoading}
           />

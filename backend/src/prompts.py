@@ -7,7 +7,7 @@ from enum import Enum
 
 class AgentType(Enum):
     SHARK_VC = "Shark VC"
-    PRODUCT_PM = "Product PM"
+    PRODUCT_PM = "Product Manager"
 
 
 SHARK_VC_PROMPT = """

@@ -43,7 +43,7 @@ const formatAnalysisMessage = (analysis: any, agent: string): string => {
     sections.push(`**Overall Score:** ${analysis.score}/100`)
   }
   
-  const intro = agent === 'Product PM' 
+  const intro = agent === 'Product Manager' 
     ? "I've analyzed your document from a product perspective. Here's what I found:"
     : "I've reviewed your pitch deck like a VC would. Here are my insights:"
   
@@ -55,12 +55,14 @@ const formatAnalysisMessage = (analysis: any, agent: string): string => {
 export default function Home() {
   const { data: session, status } = useSession()
   const { toast } = useToast()
-  const [selectedAgent, setSelectedAgent] = useState('Product PM')
+  const [selectedAgent, setSelectedAgent] = useState('Product Manager')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [completedTopics, setCompletedTopics] = useState<string[]>([])
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [hasUploadedDocument, setHasUploadedDocument] = useState(false)
+  const [isConnected, setIsConnected] = useState(true)
+  const [actionFeedback, setActionFeedback] = useState('')
   
   // New state for Socket.io and feedback
   const socket = useRef<Socket | null>(null)
@@ -70,6 +72,24 @@ export default function Home() {
 
   const founderId = session?.user?.email || "anonymous"
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+  // Helper function to show success feedback
+  const showSuccessFeedback = (message: string) => {
+    setActionFeedback(message)
+    setTimeout(() => setActionFeedback(''), 3000)
+  }
+
+  // Connection monitoring
+  useEffect(() => {
+    const checkConnection = () => {
+      fetch(`${apiUrl}/`, { method: 'HEAD' })
+        .then(() => setIsConnected(true))
+        .catch(() => setIsConnected(false))
+    }
+    
+    const interval = setInterval(checkConnection, 30000)
+    return () => clearInterval(interval)
+  }, [apiUrl])
 
   // Memoize missingSections to prevent unnecessary API calls
   const missingSections = useMemo(() => {
@@ -199,7 +219,7 @@ export default function Home() {
          })
         
         // Update analysis results for current agent
-        const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
+        const currentAnalysis = data.analysis[selectedAgent as 'Product Manager' | 'Shark VC']
         if (currentAnalysis) {
           const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
           setMessages(prev => [...prev, { 
@@ -250,11 +270,11 @@ export default function Home() {
 
   // Get next suggested topic
   const getNextSuggestedTopic = () => {
-    const rubric = selectedAgent === 'Product PM' 
+    const rubric = selectedAgent === 'Product Manager' 
       ? ['user personas', 'market opportunity', 'product roadmap', 'success metrics', 'competitive landscape']
       : ['your founding team', 'market size (TAM)', 'unit economics', 'competitive advantage', 'use of funds']
     
-    const allTopics = selectedAgent === 'Product PM'
+    const allTopics = selectedAgent === 'Product Manager'
       ? ['persona', 'market', 'roadmap', 'metrics', 'competition']
       : ['team', 'market', 'economics', 'competition', 'funding']
     
@@ -302,6 +322,9 @@ export default function Home() {
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
       
+      // Show success feedback
+      showSuccessFeedback('Message sent successfully!')
+      
       // Emit typing indicator via Socket.io
       socket.current?.emit('stop_typing', { founderId })
     } catch (error) {
@@ -331,7 +354,7 @@ export default function Home() {
       const data = await response.json() as { 
         filename: string
         analysis?: {
-          'Product PM'?: any
+          'Product Manager'?: any
           'Shark VC'?: any
         }
       }
@@ -354,7 +377,7 @@ export default function Home() {
         })
         
         // Auto-display analysis results for current agent
-        const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
+        const currentAnalysis = data.analysis[selectedAgent as 'Product Manager' | 'Shark VC']
         if (currentAnalysis) {
           const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
           setMessages(prev => [...prev, { 
@@ -426,6 +449,23 @@ export default function Home() {
       )}
       
       <main className="flex-1 flex flex-col max-w-6xl mx-auto w-full">
+        {/* Connection Status */}
+        {!isConnected && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mx-4 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin h-4 w-4 border-2 border-yellow-700 border-t-transparent rounded-full" />
+              Connection lost. Reconnecting...
+            </div>
+          </div>
+        )}
+
+        {/* Success Feedback */}
+        {actionFeedback && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded text-sm mx-4 mb-4 animate-slide-up">
+            ✅ {actionFeedback}
+          </div>
+        )}
+
         <AgentSelector 
           selectedAgent={selectedAgent} 
           onSelect={handleAgentSelect}  // Use the new handler
@@ -433,7 +473,7 @@ export default function Home() {
         
         {/* Contextual help explaining agent differences */}
         <div className="text-center text-xs text-muted-foreground mb-4 px-4">
-          💡 <strong>Product PM:</strong> For product strategy, user research, roadmaps
+          💡 <strong>Product Manager:</strong> For product strategy, user research, roadmaps
           • <strong>Shark VC:</strong> For investor feedback, business model, fundraising
         </div>
         
@@ -505,6 +545,7 @@ export default function Home() {
         onUploadFile={uploadFile}
         isLoading={isLoading}
         suggestedTopic={messages.length > 2 ? getNextSuggestedTopic() : undefined}
+        selectedAgent={selectedAgent}
       />
       
       <FeedbackModal

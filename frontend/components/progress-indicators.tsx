@@ -43,7 +43,7 @@ interface ProgressIndicatorsProps {
 }
 
 export default function ProgressIndicators({ selectedAgent, completedItems, className }: ProgressIndicatorsProps) {
-  const rubric = selectedAgent === 'Product PM' ? PRODUCT_PM_RUBRIC : SHARK_VC_RUBRIC
+  const rubric = selectedAgent === 'Product Manager' ? PRODUCT_PM_RUBRIC : SHARK_VC_RUBRIC
   const completedCount = completedItems.length
   const totalCount = rubric.length
   const percentage = (completedCount / totalCount) * 100

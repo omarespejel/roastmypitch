@@ -71,7 +71,7 @@ def get_llm_for_agent(agent_type: AgentType):
             max_tokens=400,  # Add this line
         )
     else:
-        # Use Claude for Product PM deep thinking
+        # Use Claude for Product Manager deep thinking
         return OpenAILike(
             api_base="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -371,14 +371,14 @@ async def upload_document(
             
             # Run analysis for both agent types
             analysis_pm = analyzer.analyze_document_gaps(
-                document_text, AgentType("Product PM")
+                document_text, AgentType("Product Manager")
             )
             analysis_vc = analyzer.analyze_document_gaps(
                 document_text, AgentType("Shark VC")
             )
             
             analysis = {
-                "Product PM": analysis_pm.dict() if hasattr(analysis_pm, 'dict') else analysis_pm,
+                "Product Manager": analysis_pm.dict() if hasattr(analysis_pm, 'dict') else analysis_pm,
                 "Shark VC": analysis_vc.dict() if hasattr(analysis_vc, 'dict') else analysis_vc,
             }
             
@@ -483,7 +483,7 @@ async def analyze_pitch_deck(
         raise HTTPException(status_code=400, detail="Invalid founder ID")
 
     # Validate agent_type
-    valid_agents = ["Shark VC", "Product PM"]
+    valid_agents = ["Shark VC", "Product Manager"]
     if agent_type not in valid_agents:
         raise HTTPException(status_code=400, detail="Invalid agent type")
 
@@ -538,7 +538,7 @@ async def get_adaptive_questions(request: AdaptiveQuestionsRequest, req: Request
         raise HTTPException(status_code=400, detail="Too many missing sections")
 
     # Validate agent_type
-    valid_agents = ["Shark VC", "Product PM"]
+    valid_agents = ["Shark VC", "Product Manager"]
     if request.agent_type not in valid_agents:
         raise HTTPException(status_code=400, detail="Invalid agent type")
 
