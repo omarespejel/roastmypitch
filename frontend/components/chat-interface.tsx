@@ -51,14 +51,17 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
             {getAgentIcon()}
           </div>
           <h3 className="text-xl font-semibold mb-2">
-            {selectedAgent === 'Product PM' ? 'Ready to refine your product?' : 'Ready for investor feedback?'}
+            {selectedAgent === 'Product PM' ? 'Ready to discuss your product?' : 'Ready to talk strategy?'}
           </h3>
           <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
             {selectedAgent === 'Product PM' 
-              ? "Upload your PRD or describe your product. I'll help you refine your product strategy with frameworks from top tech companies."
-              : "Upload your pitch deck. I'll analyze it like a top-tier VC would, focusing on what matters for fundraising."
+              ? "Describe your product idea or upload a PRD for detailed analysis. I'll help you refine your product strategy with frameworks from top tech companies."
+              : "Tell me about your startup or upload your pitch deck for detailed feedback. I'll analyze it like a top-tier VC would."
             }
           </p>
+          <div className="mt-4 text-xs text-muted-foreground/70">
+            💡 Document upload is optional - you can start chatting right away!
+          </div>
         </div>
       )}
       

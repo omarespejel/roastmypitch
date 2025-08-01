@@ -60,6 +60,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [completedTopics, setCompletedTopics] = useState<string[]>([])
   const [showOnboarding, setShowOnboarding] = useState(true)
+  const [hasUploadedDocument, setHasUploadedDocument] = useState(false)
   
   // New state for Socket.io and feedback
   const socket = useRef<Socket | null>(null)
@@ -335,50 +336,38 @@ export default function Home() {
         }
       }
       
-             // 🎉 MAGICAL ANALYSIS RESULTS!
-       if (data.analysis) {
-         // 🎊 CONFETTI CELEBRATION!
-         confetti({
-           particleCount: 100,
-           spread: 70,
-           origin: { y: 0.6 }
-         })
-         
-         // Show confetti/celebration toast
-         toast({
-           title: "🎉 Document Analyzed!",
-           description: "See tailored suggestions below. Your insights are ready!",
-           variant: "success" as any,
-         })
+      // Optional: Set flag that document has been uploaded
+      setHasUploadedDocument(true)
+      
+      // Show enhanced analysis toast
+      if (data.analysis) {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        })
         
-                 // Auto-display analysis results for current agent
-         const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
+        toast({
+          title: "🎉 Document Analyzed!",
+          description: "Enhanced analysis available! Check the suggestions panel.",
+          variant: "success" as any,
+        })
+        
+        // Auto-display analysis results for current agent
+        const currentAnalysis = data.analysis[selectedAgent as 'Product PM' | 'Shark VC']
         if (currentAnalysis) {
           const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
           setMessages(prev => [...prev, { 
             role: 'assistant', 
             content: analysisMessage
           }])
-          
-          // Auto-expand analysis sections by setting completed topics
-          if (currentAnalysis.missing_sections) {
-            setCompletedTopics(prev => [...prev, ...currentAnalysis.missing_sections.slice(0, 3)])
-          }
         }
       } else {
-        // Fallback if analysis failed
         toast({
           title: "Document Uploaded",
-          description: `${data.filename} uploaded successfully! Analysis in progress...`,
+          description: `${data.filename} uploaded successfully! I can now provide more detailed analysis.`,
           variant: "success" as any,
         })
-        
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: selectedAgent === 'Product PM'
-            ? `I've received your document: ${data.filename}. Let me analyze it through a product lens. What specific product questions should I focus on?`
-            : `I've received your pitch deck: ${data.filename}. Let me review it like a VC would. What specific aspects would you like me to focus on?`
-        }])
       }
     } catch (error) {
       console.error('Error uploading file:', error)
@@ -462,11 +451,14 @@ export default function Home() {
                 className="sticky top-4"
               />
               
-              <SmartSuggestions
-                founderId={founderId}
-                selectedAgent={selectedAgent}
-                onActionClick={(action) => sendMessage(action)}
-              />
+              {/* Show smart suggestions based on conversation, not just document upload */}
+              {messages.length > 2 && (
+                <SmartSuggestions
+                  founderId={founderId}
+                  selectedAgent={selectedAgent}
+                  onActionClick={(action) => sendMessage(action)}
+                />
+              )}
               
               <AdaptiveQuestions
                 missingSections={missingSections}

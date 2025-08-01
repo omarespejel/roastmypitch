@@ -60,7 +60,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Describe your startup idea or ask for feedback..."
+            placeholder="Ask me anything about your startup, product strategy, or market approach..."
             className="min-h-[80px] pr-24 resize-none"
             disabled={isLoading}
           />
@@ -91,7 +91,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
           <p>Press Enter to send, Shift+Enter for new line</p>
-          <p>PDF files only (max 10MB)</p>
+          <p>Upload docs for detailed analysis (optional)</p>
         </div>
       </div>
       <input

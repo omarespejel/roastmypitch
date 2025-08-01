@@ -35,14 +35,26 @@ export default function SmartSuggestions({ founderId, selectedAgent, onActionCli
         const response = await fetch(`${apiUrl}/analyze/${founderId}?agent_type=${selectedAgent}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          // No body is needed for this endpoint, but POST is required
         })
+        
+        if (response.status === 404) {
+          // No documents uploaded yet - this is normal, don't show error
+          const errorData = await response.json()
+          if (errorData.code === 'NO_DOCUMENTS') {
+            setAnalysis(null)
+            return
+          }
+        }
+        
         if (response.ok) {
           const data = await response.json()
           setAnalysis(data)
+        } else {
+          throw new Error(`HTTP ${response.status}`)
         }
       } catch (error) {
         console.error('Failed to fetch analysis:', error)
+        // Don't set analysis to null on error - keep previous state
       } finally {
         setIsLoading(false)
       }

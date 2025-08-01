@@ -500,9 +500,13 @@ async def analyze_pitch_deck(
         content = " ".join([doc.text for doc in docs])
 
         if not content or len(content.strip()) < 50:
-            raise HTTPException(
+            return JSONResponse(
                 status_code=404,
-                detail="No sufficient document content found for analysis",
+                content={
+                    "detail": "No documents uploaded yet. Upload a document for detailed analysis, or continue chatting for general advice!",
+                    "code": "NO_DOCUMENTS",
+                    "founder_id": founder_id
+                }
             )
 
         analysis = analyzer.analyze_document_gaps(content, AgentType(agent_type))

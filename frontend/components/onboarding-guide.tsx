@@ -65,7 +65,7 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-medium text-sm">Recommended Process:</h4>
+              <h4 className="font-medium text-sm">How to Use:</h4>
               
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600/10 flex items-center justify-center text-sm font-medium">
@@ -74,8 +74,9 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
                 <div className="flex-1">
                   <h5 className="font-medium text-sm">Start with Product Strategy</h5>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Upload your PRD or describe your product. Our Product advisor (based on Lenny Rachitsky) 
-                    will help you nail product-market fit, user personas, and your roadmap.
+                    Just start chatting about your product idea! Our Product advisor (based on Lenny Rachitsky) 
+                    will help you nail product-market fit, user personas, and your roadmap. 
+                    <span className="text-primary">Upload a PRD for deeper analysis (optional).</span>
                   </p>
                 </div>
               </div>
@@ -87,8 +88,8 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
                 <div className="flex-1">
                   <h5 className="font-medium text-sm">Then Face the VCs</h5>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Upload your pitch deck. Our VC advisor (based on top partners from Sequoia, a16z, YC) 
-                    will stress-test your assumptions and prepare you for real investor meetings.
+                    Discuss your startup strategy or upload your pitch deck for detailed feedback. 
+                    Our VC advisor (based on top partners from Sequoia, a16z, YC) will stress-test your assumptions.
                   </p>
                 </div>
               </div>
@@ -97,11 +98,11 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
             <div className="bg-secondary/50 rounded-lg p-3">
               <h4 className="font-medium text-sm mb-1 flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Important: Upload First
+                Pro Tip: Documents Optional
               </h4>
               <p className="text-xs text-muted-foreground">
-                For best results, always upload your PRD or pitch deck first. 
-                The advisors will analyze your document and identify gaps to fill.
+                You can start chatting immediately! Upload documents (PRD or pitch deck) 
+                for more detailed analysis and gap identification.
               </p>
             </div>
 
