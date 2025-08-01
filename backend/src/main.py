@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 import logging
+import asyncio
 from collections import defaultdict
 from typing import Dict, Optional, Any, List
 from logging.handlers import RotatingFileHandler
@@ -60,26 +61,43 @@ Settings.embed_model = "local:BAAI/bge-small-en-v1.5"
 
 def get_llm_for_agent(agent_type: AgentType):
     """Get the appropriate LLM based on agent type"""
-    if agent_type == AgentType.SHARK_VC:
-        # Use Perplexity Sonar Pro for web-search enabled VC analysis
-        return OpenAILike(
-            api_base="https://openrouter.ai/api/v1",
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="perplexity/sonar-pro",
-            is_chat_model=True,
-            context_window=200000,
-            max_tokens=400,  # Add this line
-        )
-    else:
-        # Use Claude for Product Manager deep thinking
-        return OpenAILike(
-            api_base="https://openrouter.ai/api/v1",
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="anthropic/claude-3.5-sonnet",
-            is_chat_model=True,
-            context_window=200000,
-            max_tokens=400,  # Add this line
-        )
+    
+    # Add validation
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        logger.error("❌ OPENROUTER_API_KEY not found!")
+        raise ValueError("OpenRouter API key not configured")
+    
+    try:
+        if agent_type == AgentType.SHARK_VC:
+            llm = OpenAILike(
+                api_base="https://openrouter.ai/api/v1",
+                api_key=api_key,
+                model="perplexity/sonar-pro",
+                is_chat_model=True,
+                context_window=200000,
+                max_tokens=400,
+                temperature=0.7,  # Add temperature
+                request_timeout=30.0,  # Add timeout
+            )
+        else:
+            llm = OpenAILike(
+                api_base="https://openrouter.ai/api/v1", 
+                api_key=api_key,
+                model="anthropic/claude-3.5-sonnet",
+                is_chat_model=True,
+                context_window=200000,
+                max_tokens=400,
+                temperature=0.7,  # Add temperature  
+                request_timeout=30.0,  # Add timeout
+            )
+        
+        logger.info(f"✅ LLM configured: {llm.model}")
+        return llm
+        
+    except Exception as e:
+        logger.error(f"❌ LLM configuration failed: {e}")
+        raise
 
 
 # --- Database and Vector Store Setup ---
@@ -210,6 +228,30 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+# Add startup event to verify configuration
+@app.on_event("startup")
+async def verify_config():
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        logger.error("❌ CRITICAL: OPENROUTER_API_KEY not found!")
+        raise RuntimeError("OpenRouter API key not configured")
+    else:
+        logger.info(f"✅ OpenRouter API key configured (length: {len(api_key)})")
+        # Test the API key
+        try:
+            import requests
+            response = requests.get(
+                "https://openrouter.ai/api/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=10
+            )
+            if response.status_code == 200:
+                logger.info("✅ OpenRouter API key is valid")
+            else:
+                logger.error(f"❌ OpenRouter API key test failed: {response.status_code}")
+        except Exception as e:
+            logger.error(f"❌ OpenRouter API key test error: {e}")
 
 # Create Socket.IO server with explicit CORS configuration
 sio = socketio.AsyncServer(
@@ -413,38 +455,86 @@ async def upload_document(
 
 
 @app.post("/chat", response_model=ChatResponse)
-async def handle_chat(request: ChatRequest):
+async def handle_chat(request: ChatRequest, req: Request = None):
+    # Rate limiting for chat operations
+    if req:
+        client_ip = req.client.host
+        check_rate_limit(client_ip, is_expensive=True)
+
     founder_id = request.founder_id
     agent_type = AgentType(request.agent_type)
+    
+    # Add input validation logging
+    logger.info(f"📨 Chat request received - Founder: {founder_id}, Agent: {agent_type}")
+    logger.info(f"📝 Message: '{request.message[:100]}...'")
+    
+    if not request.message or not request.message.strip():
+        logger.warning(f"❌ Empty message received from {founder_id}")
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    # Create composite key for session storage
     session_key = f"{founder_id}_{agent_type.value}"
+    
+    try:
+        if session_key not in chat_engines:
+            logger.info(f"🔧 Creating new chat engine for session: {session_key}")
+            
+            retriever = index.as_retriever(
+                vector_store_query_mode="default",
+                filters=MetadataFilters(
+                    filters=[ExactMatchFilter(key="founder_id", value=founder_id)]
+                ),
+            )
+            memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
 
-    if session_key not in chat_engines:
-        retriever = index.as_retriever(
-            vector_store_query_mode="default",
-            filters=MetadataFilters(
-                filters=[ExactMatchFilter(key="founder_id", value=founder_id)]
-            ),
+            # Get the appropriate LLM and prompt
+            llm = get_llm_for_agent(agent_type)
+            prompt = get_prompt(agent_type)
+            
+            logger.info(f"🤖 Using LLM model: {llm.model if hasattr(llm, 'model') else 'Unknown'}")
+            logger.info(f"📝 System prompt length: {len(prompt)} characters")
+
+            chat_engines[session_key] = ContextChatEngine.from_defaults(
+                retriever=retriever,
+                memory=memory,
+                system_prompt=prompt,
+                llm=llm,
+            )
+            logger.info(f"✅ Chat engine created successfully for {session_key}")
+
+        chat_engine = chat_engines[session_key]
+        
+        # Log before AI call
+        logger.info(f"🧠 Sending message to AI engine...")
+        
+        # The critical call - add timeout and error handling
+        response = await asyncio.wait_for(
+            chat_engine.achat(request.message), 
+            timeout=30.0
         )
-        memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
-
-        # Get the appropriate LLM and prompt
-        llm = get_llm_for_agent(agent_type)
-        prompt = get_prompt(agent_type)
-
-        # Create chat engine with specific LLM
-        chat_engines[session_key] = ContextChatEngine.from_defaults(
-            retriever=retriever,
-            memory=memory,
-            system_prompt=prompt,
-            llm=llm,  # Pass the specific LLM
-        )
-
-    chat_engine = chat_engines[session_key]
-    response = await chat_engine.achat(request.message)
-
-    return {"reply": str(response)}
+        
+        # Log the AI response
+        response_text = str(response) if response else ""
+        logger.info(f"🎯 AI Response received - Length: {len(response_text)} chars")
+        logger.info(f"🎯 Raw response object type: {type(response)}")
+        logger.info(f"🎯 Raw response object: {repr(response)}")
+        
+        if len(response_text) > 0:
+            logger.info(f"🎯 AI Response preview: '{response_text[:200]}...'")
+        
+        if not response_text or not response_text.strip():
+            logger.error(f"❌ AI returned empty response for message: '{request.message}'")
+            logger.error(f"❌ Response was: {repr(response)}")
+            # Return a fallback response instead of empty
+            return {"reply": "I apologize, but I didn't generate a response. Could you please rephrase your question?"}
+        
+        return {"reply": response_text}
+        
+    except asyncio.TimeoutError:
+        logger.error(f"⏰ Timeout waiting for AI response from {founder_id}")
+        raise HTTPException(status_code=504, detail="AI response timed out")
+    except Exception as e:
+        logger.error(f"💥 Chat error for {founder_id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
 
 
 @app.post("/reset/{founder_id}")
@@ -570,6 +660,43 @@ async def get_adaptive_questions(request: AdaptiveQuestionsRequest, req: Request
 @app.get("/")
 def read_root():
     return {"status": "Starknet VC Co-pilot API is running"}
+
+@app.get("/debug/env")
+def debug_env():
+    """Debug endpoint to check environment configuration"""
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    return {
+        "has_openrouter_key": bool(api_key),
+        "key_length": len(api_key) if api_key else 0,
+        "key_prefix": api_key[:8] + "..." if api_key and len(api_key) > 8 else None,
+        "frontend_url": os.getenv("FRONTEND_URL"),
+        "production_frontend": os.getenv("PRODUCTION_FRONTEND_URL"),
+        "environment_vars": {
+            "OPENROUTER_API_KEY": "SET" if api_key else "MISSING",
+            "FRONTEND_URL": "SET" if os.getenv("FRONTEND_URL") else "MISSING",
+        }
+    }
+
+@app.get("/debug/test-ai")
+async def test_ai_connection():
+    """Test endpoint to verify AI connectivity"""
+    try:
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            return {"error": "OPENROUTER_API_KEY not configured"}
+        
+        # Test basic LLM functionality
+        llm = get_llm_for_agent(AgentType.PRODUCT_PM)
+        response = await llm.acomplete("Say 'AI connection test successful'")
+        
+        return {
+            "success": True,
+            "response": str(response),
+            "model": getattr(llm, 'model', 'Unknown')
+        }
+    except Exception as e:
+        logger.error(f"AI test failed: {e}", exc_info=True)
+        return {"error": str(e), "success": False}
 
 
 # Export the Socket.IO wrapped app for both REST and WebSocket support
