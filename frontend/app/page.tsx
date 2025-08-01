@@ -431,6 +431,12 @@ export default function Home() {
           onSelect={handleAgentSelect}  // Use the new handler
         />
         
+        {/* Contextual help explaining agent differences */}
+        <div className="text-center text-xs text-muted-foreground mb-4 px-4">
+          💡 <strong>Product PM:</strong> For product strategy, user research, roadmaps
+          • <strong>Shark VC:</strong> For investor feedback, business model, fundraising
+        </div>
+        
         {/* Desktop layout with progress sidebar */}
         <div className="flex-1 flex gap-4 mx-4 mb-4">
           {/* Chat area */}
@@ -438,7 +444,8 @@ export default function Home() {
             <ChatInterface 
               messages={messages} 
               isLoading={isLoading}
-              selectedAgent={selectedAgent}  // Add this prop
+              selectedAgent={selectedAgent}
+              onSendMessage={sendMessage}
             />
           </Card>
           

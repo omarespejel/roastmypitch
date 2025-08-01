@@ -13,7 +13,7 @@ const AGENTS = [
     description: 'Start here - Product strategy insights',
     gradient: 'from-blue-600 to-cyan-600',
     bgGradient: 'from-blue-600/10 to-cyan-600/10',
-    basedOn: 'Based on Lenny Rachitsky'
+    basedOn: 'Based on top Product leaders and frameworks'
   },
   { 
     name: 'Shark VC', 

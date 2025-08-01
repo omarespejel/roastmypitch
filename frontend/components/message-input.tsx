@@ -60,7 +60,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me anything about your startup, product strategy, or market approach..."
+            placeholder="Ask me to help define your user persona, problem statement, market strategy, or just describe your idea..."
             className="min-h-[80px] pr-24 resize-none"
             disabled={isLoading}
           />
@@ -91,7 +91,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
           <p>Press Enter to send, Shift+Enter for new line</p>
-          <p>Upload docs for detailed analysis (optional)</p>
+          <p>Documents optional - just start chatting about your idea!</p>
         </div>
       </div>
       <input

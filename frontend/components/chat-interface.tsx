@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { cn } from "@/app/lib/utils"
 import { Bot, User } from "lucide-react"
+import { Button } from "@/app/components/ui/button"
 import { SharkIcon, BrainIcon } from "./custom-icons"
 
 interface Message {
@@ -14,9 +15,10 @@ interface ChatInterfaceProps {
   messages: Message[]
   isLoading: boolean
   selectedAgent?: string
+  onSendMessage?: (message: string) => void
 }
 
-export default function ChatInterface({ messages, isLoading, selectedAgent = 'Shark VC' }: ChatInterfaceProps) {
+export default function ChatInterface({ messages, isLoading, selectedAgent = 'Shark VC', onSendMessage }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -55,13 +57,63 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
           </h3>
           <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
             {selectedAgent === 'Product PM' 
-              ? "Describe your product idea or upload a PRD for detailed analysis. I'll help you refine your product strategy with frameworks from top tech companies."
-              : "Tell me about your startup or upload your pitch deck for detailed feedback. I'll analyze it like a top-tier VC would."
+              ? "Ask me anything about your product strategy! Need help defining your user persona, problem statement, or product roadmap? Just start chatting. You can also upload a PRD for detailed analysis (completely optional)."
+              : "Tell me about your startup idea and I'll provide investor-grade feedback! Ask me to help you refine your pitch, analyze your market, or identify risks. Upload your pitch deck for detailed analysis (optional)."
             }
           </p>
           <div className="mt-4 text-xs text-muted-foreground/70">
             💡 Document upload is optional - you can start chatting right away!
           </div>
+          
+          {/* Example Question Buttons */}
+          {onSendMessage && (
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onSendMessage("Help me define my target user persona")}
+                className="text-left justify-start h-auto p-3"
+              >
+                <div>
+                  <div className="font-medium text-sm">Define User Persona</div>
+                  <div className="text-xs text-muted-foreground">Who exactly is your target user?</div>
+                </div>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onSendMessage("Help me clarify my problem statement")}
+                className="text-left justify-start h-auto p-3"
+              >
+                <div>
+                  <div className="font-medium text-sm">Clarify Problem Statement</div>
+                  <div className="text-xs text-muted-foreground">What specific problem are you solving?</div>
+                </div>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onSendMessage("Analyze my go-to-market strategy")}
+                className="text-left justify-start h-auto p-3"
+              >
+                <div>
+                  <div className="font-medium text-sm">Go-to-Market Strategy</div>
+                  <div className="text-xs text-muted-foreground">How will you acquire customers?</div>
+                </div>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onSendMessage("What are the risks in my business model?")}
+                className="text-left justify-start h-auto p-3"
+              >
+                <div>
+                  <div className="font-medium text-sm">Identify Business Risks</div>
+                  <div className="text-xs text-muted-foreground">What could kill your startup?</div>
+                </div>
+              </Button>
+            </div>
+          )}
         </div>
       )}
       

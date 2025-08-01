@@ -25,7 +25,7 @@ export default function Header() {
               </div>
             </div>
             <div className="hidden md:block text-xs text-muted-foreground/70 border-l pl-4 ml-2">
-              <p>Supporting ecosystem startups</p>
+              <p>Get AI feedback on your startup ideas & strategy</p>
               <p>Issues? Contact <span className="text-primary">@espejelomar</span> on Telegram</p>
             </div>
           </div>

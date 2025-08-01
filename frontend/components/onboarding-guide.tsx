@@ -72,11 +72,11 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
                   1
                 </div>
                 <div className="flex-1">
-                  <h5 className="font-medium text-sm">Start with Product Strategy</h5>
+                  <h5 className="font-medium text-sm">Start by Describing Your Idea</h5>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Just start chatting about your product idea! Our Product advisor (based on Lenny Rachitsky) 
-                    will help you nail product-market fit, user personas, and your roadmap. 
-                    <span className="text-primary">Upload a PRD for deeper analysis (optional).</span>
+                    No documents needed! Just describe your product idea, target users, or business concept. 
+                    Ask questions like: "Help me define my user persona" or "What's wrong with my problem statement?" 
+                    <span className="text-primary">Upload a Product Requirements Document for deeper analysis (completely optional).</span>
                   </p>
                 </div>
               </div>
