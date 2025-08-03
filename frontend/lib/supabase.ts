@@ -5,6 +5,13 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // Client-side Supabase client
 export const createClient = () => {
+  if (typeof window === 'undefined') {
+    // Server-side: use basic client to avoid SSR webpack issues
+    const { createClient: createBaseClient } = require('@supabase/supabase-js')
+    return createBaseClient(supabaseUrl, supabaseAnonKey)
+  }
+  
+  // Client-side: use SSR-aware client
   return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 

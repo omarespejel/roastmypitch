@@ -160,7 +160,7 @@ export default function Home() {
         .order('created_at', { ascending: true })
 
       if (data && !error) {
-        setMessages(data.map(msg => ({ role: msg.role, content: msg.content })))
+        setMessages(data.map((msg: ChatMessage) => ({ role: msg.role, content: msg.content })))
       }
     }
 
@@ -177,7 +177,7 @@ export default function Home() {
           table: 'chat_messages',
           filter: `founder_id=eq.${founderId}`
         },
-        (payload) => {
+        (payload: any) => {
           const newMessage = payload.new as ChatMessage
           if (newMessage.agent_type === selectedAgent) {
             setMessages(prev => [...prev, { 
