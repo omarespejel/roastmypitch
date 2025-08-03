@@ -70,24 +70,14 @@ export default function Header() {
               </Button>
             </div>
           ) : (
-            <div className="flex gap-2">
-              <Button
-                onClick={() => signInWithOAuth('google')}
-                variant="gradient"
-                className="gap-2"
-              >
-                <Mail className="h-4 w-4" />
-                Magic Link
-              </Button>
-              <Button
-                onClick={() => signInWithOAuth('github')}
-                variant="outline"
-                className="gap-2"
-              >
-                <Github className="h-4 w-4" />
-                GitHub
-              </Button>
-            </div>
+            <Button
+              onClick={() => signInWithOAuth('github')}
+              variant="gradient"
+              className="gap-2"
+            >
+              <Github className="h-4 w-4" />
+              Sign in with GitHub
+            </Button>
           )}
         </div>
       </div>

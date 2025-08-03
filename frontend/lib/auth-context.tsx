@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   signInWithMagicLink: (email: string) => Promise<{ error: AuthError | null }>
-  signInWithOAuth: (provider: 'google' | 'github') => Promise<{ error: AuthError | null }>
+  signInWithOAuth: (provider: 'github') => Promise<{ error: AuthError | null }>
   signOut: () => Promise<{ error: AuthError | null }>
 }
 
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error }
   }
 
-  const signInWithOAuth = async (provider: 'google' | 'github') => {
+  const signInWithOAuth = async (provider: 'github') => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
