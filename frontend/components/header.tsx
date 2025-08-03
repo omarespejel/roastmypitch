@@ -1,12 +1,12 @@
 "use client"
 
-import { signIn, signOut, useSession } from "next-auth/react"
 import { Button } from "@/app/components/ui/button"
-import { Github, LogOut, Sparkles } from "lucide-react"
+import { LogOut, Sparkles, Mail, Github } from "lucide-react"
 import Image from "next/image"
+import { useAuth } from "@/lib/auth-context"
 
 export default function Header() {
-  const { data: session } = useSession()
+  const { user, signOut, signInWithOAuth } = useAuth()
 
   return (
     <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
@@ -34,19 +34,29 @@ export default function Header() {
             </div>
           </div>
           
-          {session?.user ? (
+          {user ? (
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                <Image
-                  src={session.user.image || ""}
-                  alt="Profile"
-                  width={40}
-                  height={40}
-                  className="rounded-full border-2 border-primary/20"
-                />
+                {user.user_metadata?.avatar_url ? (
+                  <Image
+                    src={user.user_metadata.avatar_url}
+                    alt="Profile"
+                    width={40}
+                    height={40}
+                    className="rounded-full border-2 border-primary/20"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                    <span className="text-white font-medium">
+                      {user.email?.[0]?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
                 <div className="hidden sm:block">
-                  <p className="text-sm font-medium">{session.user.name}</p>
-                  <p className="text-xs text-muted-foreground">{session.user.email}</p>
+                  <p className="text-sm font-medium">
+                    {user.user_metadata?.full_name || user.email}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
               <Button
@@ -60,14 +70,24 @@ export default function Header() {
               </Button>
             </div>
           ) : (
-            <Button
-              onClick={() => signIn("github")}
-              variant="gradient"
-              className="gap-2"
-            >
-              <Github className="h-4 w-4" />
-              Sign in with GitHub
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => signInWithOAuth('google')}
+                variant="gradient"
+                className="gap-2"
+              >
+                <Mail className="h-4 w-4" />
+                Magic Link
+              </Button>
+              <Button
+                onClick={() => signInWithOAuth('github')}
+                variant="outline"
+                className="gap-2"
+              >
+                <Github className="h-4 w-4" />
+                GitHub
+              </Button>
+            </div>
           )}
         </div>
       </div>

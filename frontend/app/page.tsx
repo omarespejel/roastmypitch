@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/lib/auth-context'
 import { io, Socket } from 'socket.io-client'
 import confetti from 'canvas-confetti'
 import { supabase, type ChatMessage } from '@/lib/supabase'
@@ -19,7 +19,7 @@ import { Card } from '@/app/components/ui/card'
 import { useToast } from '@/app/hooks/use-toast'
 import { Button } from '@/app/components/ui/button'
 import { Github } from 'lucide-react'
-import { signIn } from 'next-auth/react'
+import MagicLinkAuth from '@/components/magic-link-auth'
 import { analyzeCompletedTopics } from '@/lib/topic-analyzer'
 
 interface Message {
@@ -53,7 +53,7 @@ const formatAnalysisMessage = (analysis: any, agent: string): string => {
 }
 
 export default function Home() {
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
   const { toast } = useToast()
   const [selectedAgent, setSelectedAgent] = useState('Product Manager')
   const [messages, setMessages] = useState<Message[]>([])
@@ -70,7 +70,7 @@ export default function Home() {
   const [showFeedback, setShowFeedback] = useState(false)
   const [lastFeedbackCount, setLastFeedbackCount] = useState(0)
 
-  const founderId = session?.user?.email || "anonymous"
+  const founderId = user?.email || "anonymous"
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
   // Helper function to show success feedback
@@ -141,7 +141,7 @@ export default function Home() {
 
   // Enhanced useEffect for Supabase and Socket.io integration
   useEffect(() => {
-    if (!session) return
+    if (!user) return
 
     // Initialize Socket.io connection with enhanced configuration
     socket.current = io(apiUrl, {
@@ -191,7 +191,7 @@ export default function Home() {
 
     // Socket.io event handlers
     socket.current.on('user_typing', (data: { userId: string }) => {
-      if (data.userId !== session.user.id) {
+      if (data.userId !== user.id) {
         setIsOtherUserTyping(data.userId)
         setTimeout(() => setIsOtherUserTyping(null), 3000)
       }
@@ -239,7 +239,7 @@ export default function Home() {
       supabase.removeChannel(channel)
       socket.current?.disconnect()
     }
-  }, [founderId, selectedAgent, session, apiUrl])
+  }, [founderId, selectedAgent, user, apiUrl])
 
   // Feedback tracking useEffect
   useEffect(() => {
@@ -402,7 +402,7 @@ export default function Home() {
     }
   }
 
-  if (status === "loading") {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -410,31 +410,12 @@ export default function Home() {
     )
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
         <div className="flex-1 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full p-8 text-center animate-fade-up">
-            <div className="mb-6">
-              <div className="p-4 rounded-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 w-fit mx-auto mb-4">
-                <Github className="h-12 w-12 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold mb-2">Welcome to Starknet Founders Bot</h2>
-              <p className="text-muted-foreground">
-                Sign in with GitHub to get brutally honest feedback on your startup pitch
-              </p>
-            </div>
-            <Button 
-              onClick={() => signIn("github")} 
-              variant="gradient" 
-              size="lg"
-              className="w-full gap-2"
-            >
-              <Github className="h-5 w-5" />
-              Sign in with GitHub
-            </Button>
-          </Card>
+          <MagicLinkAuth />
         </div>
       </div>
     )
