@@ -1,23 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Verification logging for debugging
-console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing')
-console.log('Supabase Anon Key:', supabaseAnonKey ? 'Set' : 'Missing')
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing required Supabase environment variables')
-  console.error('Please check your .env.local file has:')
-  console.error('- NEXT_PUBLIC_SUPABASE_URL')
-  console.error('- NEXT_PUBLIC_SUPABASE_ANON_KEY')
+// Client-side Supabase client
+export const createClient = () => {
+  return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
-export const supabase = createClient(
-  supabaseUrl || 'placeholder-url', 
-  supabaseAnonKey || 'placeholder-key'
-)
+// Legacy client for backward compatibility during migration
+export const supabase = createClient()
 
 // Types for our tables
 export interface ChatMessage {
