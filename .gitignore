@@ -30,6 +30,9 @@ backend/chroma_db/
 temp_*/
 backend/temp_*/
 
+# Generated project context files
+project-context-prompt-*.txt
+
 # Log files
 *.log
 logs/
