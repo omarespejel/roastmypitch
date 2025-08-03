@@ -22,9 +22,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      setLoading(false)
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) {
+          console.error('Session error:', error)
+        }
+        setUser(session?.user ?? null)
+      } catch (error) {
+        console.error('Auth session error:', error)
+      } finally {
+        setLoading(false)
+      }
     }
 
     getSession()
@@ -32,12 +40,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.email)
       setUser(session?.user ?? null)
       setLoading(false)
 
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('User signed in:', session.user.email)
+        console.log('User signed in successfully:', session.user.email)
+      }
+      
+      if (event === 'SIGNED_OUT') {
+        console.log('User signed out')
       }
     })
 
@@ -45,29 +58,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase])
 
   const signInWithMagicLink = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        shouldCreateUser: true,
-      },
-    })
-    return { error }
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true,
+        },
+      })
+      return { error }
+    } catch (error) {
+      console.error('Magic link error:', error)
+      return { error: error as AuthError }
+    }
   }
 
   const signInWithOAuth = async (provider: 'github') => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-    return { error }
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      return { error }
+    } catch (error) {
+      console.error('OAuth error:', error)
+      return { error: error as AuthError }
+    }
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    try {
+      const { error } = await supabase.auth.signOut()
+      return { error }
+    } catch (error) {
+      console.error('Sign out error:', error)
+      return { error: error as AuthError }
+    }
   }
 
   const value = {

@@ -3,19 +3,19 @@ import { createBrowserClient } from '@supabase/ssr'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Client-side Supabase client
+// Client-side Supabase client with proper PKCE configuration
 export const createClient = () => {
-  if (typeof window === 'undefined') {
-    // Server-side: use basic client to avoid SSR webpack issues
-    const { createClient: createBaseClient } = require('@supabase/supabase-js')
-    return createBaseClient(supabaseUrl, supabaseAnonKey)
-  }
-  
-  // Client-side: use SSR-aware client
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      flowType: 'pkce',
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      persistSession: true,
+    },
+  })
 }
 
-// Legacy client for backward compatibility during migration
+// Legacy client for backward compatibility
 export const supabase = createClient()
 
 // Types for our tables
