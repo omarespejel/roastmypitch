@@ -1,11 +1,15 @@
 "use client"
 
 import { Button } from "@/app/components/ui/button"
-import { LogOut, Sparkles, Mail, Github } from "lucide-react"
+import { LogOut, Sparkles, Mail, Github, RotateCcw } from "lucide-react"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
 
-export default function Header() {
+interface HeaderProps {
+  onResetConversation?: () => void
+}
+
+export default function Header({ onResetConversation }: HeaderProps) {
   const { user, signOut, signInWithOAuth } = useAuth()
 
   return (
@@ -35,7 +39,21 @@ export default function Header() {
           </div>
           
           {user ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {/* Reset Conversation Button */}
+              {onResetConversation && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onResetConversation}
+                  className="gap-2"
+                  title="Start a fresh conversation"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span className="hidden sm:inline">New Chat</span>
+                </Button>
+              )}
+              
               <div className="flex items-center gap-3">
                 {user.user_metadata?.avatar_url ? (
                   <Image

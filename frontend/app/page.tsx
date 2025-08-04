@@ -73,6 +73,33 @@ export default function Home() {
   const founderId = user?.email || "anonymous"
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+  // Reset conversation function
+  const resetConversation = async () => {
+    try {
+      const response = await fetch(`${apiUrl}/reset/${founderId}?agent_type=${selectedAgent}`, {
+        method: 'POST',
+      })
+      
+      if (response.ok) {
+        setMessages([])
+        setCompletedTopics([])
+        setShowOnboarding(true)
+        toast({
+          title: "🔄 New conversation started",
+          description: "Chat memory has been reset. Start fresh!",
+          variant: "success" as any,
+        })
+      }
+    } catch (error) {
+      console.error('Error resetting conversation:', error)
+      toast({
+        title: "Error",
+        description: "Failed to reset conversation. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   // Helper function to show success feedback
   const showSuccessFeedback = (message: string) => {
     setActionFeedback(message)
@@ -160,7 +187,56 @@ export default function Home() {
         .order('created_at', { ascending: true })
 
       if (data && !error) {
-        setMessages(data.map(msg => ({ role: msg.role, content: msg.content })))
+        const loadedMessages = data.map(msg => ({ role: msg.role, content: msg.content }))
+        setMessages(loadedMessages)
+        
+        // Check if this is a returning user with previous messages
+        if (loadedMessages.length > 0 && !loadedMessages.some(msg => msg.content.includes('Welcome back'))) {
+          // Send a welcome back message
+          sendWelcomeBackMessage(loadedMessages.length)
+        }
+      }
+    }
+
+    // Send welcome back message for returning users
+    const sendWelcomeBackMessage = async (messageCount: number) => {
+      try {
+        const welcomeMessage = `Welcome back! 👋 I see we've had ${messageCount} previous message${messageCount > 1 ? 's' : ''} together. 
+
+Would you like to:
+• Continue our previous discussion about your startup
+• Start a fresh conversation (click "New Chat" in the header)
+• Ask me something new
+
+What would you like to focus on today?`
+
+        const response = await fetch(`${apiUrl}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            founder_id: founderId, 
+            message: `SYSTEM: Returning user with ${messageCount} previous messages`,
+            agent_type: selectedAgent,
+            is_welcome_back: true
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json() as { reply: string }
+          
+          // Add welcome back message to UI
+          setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+          
+          // Store in Supabase
+          await supabase.from('chat_messages').insert({
+            founder_id: founderId,
+            agent_type: selectedAgent,
+            role: 'assistant',
+            content: data.reply
+          })
+        }
+      } catch (error) {
+        console.error('Error sending welcome back message:', error)
       }
     }
 
@@ -423,7 +499,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <Header onResetConversation={resetConversation} />
       
       {showOnboarding && messages.length === 0 && (
         <OnboardingGuide onClose={() => setShowOnboarding(false)} />

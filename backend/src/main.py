@@ -329,6 +329,7 @@ class ChatRequest(BaseModel):
     founder_id: str
     message: str
     agent_type: Optional[str] = "Shark VC"  # Default to Shark VC
+    is_welcome_back: bool = False
 
 
 class ChatResponse(BaseModel):
@@ -537,14 +538,34 @@ Be conversational, helpful, and engaging even without documents to analyze."""
 
         chat_engine = chat_engines[session_key]
         
-        # Log before AI call
-        logger.info(f"🧠 Sending message to AI engine...")
-        
-        # The critical call - add timeout and error handling
-        response = await asyncio.wait_for(
-            chat_engine.achat(request.message), 
-            timeout=30.0
-        )
+        # Handle welcome back messages specially
+        if request.is_welcome_back:
+            logger.info(f"👋 Processing welcome back message for returning user")
+            welcome_prompt = f"""The user is returning to continue their conversation. 
+            They have previous messages in their history. 
+
+            Provide a warm, personalized welcome back message that:
+            1. Acknowledges they're returning
+            2. Briefly references your role as a {agent_type.value}
+            3. Offers to continue previous discussions or start fresh
+            4. Mentions the "New Chat" button if they want to reset
+            5. Ask what they'd like to focus on today
+
+            Keep it concise, warm, and helpful. Don't repeat basic introductions."""
+            
+            response = await asyncio.wait_for(
+                chat_engine.achat(welcome_prompt), 
+                timeout=30.0
+            )
+        else:
+            # Log before AI call
+            logger.info(f"🧠 Sending message to AI engine...")
+            
+            # The critical call - add timeout and error handling
+            response = await asyncio.wait_for(
+                chat_engine.achat(request.message), 
+                timeout=30.0
+            )
         
         # Log the AI response
         response_text = str(response) if response else ""
@@ -573,11 +594,17 @@ Be conversational, helpful, and engaging even without documents to analyze."""
 
 @app.post("/reset/{founder_id}")
 async def reset_chat(founder_id: str, agent_type: Optional[str] = None):
+    """Reset chat memory for a user and specific agent, or all agents if not specified"""
+    
     if agent_type:
         session_key = f"{founder_id}_{agent_type}"
         if session_key in chat_engines:
             del chat_engines[session_key]
+            logger.info(f"🔄 Reset chat session: {session_key}")
             return {"message": f"Chat session for {agent_type} has been reset."}
+        else:
+            logger.info(f"🔄 No active session found for {session_key}")
+            return {"message": f"No active session found for {agent_type}."}
     else:
         # Reset all sessions for this founder
         keys_to_delete = [
@@ -585,11 +612,12 @@ async def reset_chat(founder_id: str, agent_type: Optional[str] = None):
         ]
         for key in keys_to_delete:
             del chat_engines[key]
+            logger.info(f"🔄 Reset chat session: {key}")
+        
+        count = len(keys_to_delete)
         return {
-            "message": f"All chat sessions for founder {founder_id} have been reset."
+            "message": f"Reset {count} chat session(s) for founder {founder_id}."
         }
-
-    return {"message": f"No active session found."}
 
 
 # --- Analysis and Research Endpoints ---
