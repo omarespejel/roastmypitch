@@ -10,11 +10,10 @@ interface MessageInputProps {
   onSendMessage: (message: string) => void
   onUploadFile: (file: File) => void
   isLoading: boolean
-  suggestedTopic?: string
-  selectedAgent?: string  // Add this for smart placeholder
+  selectedAgent: string
 }
 
-export default function MessageInput({ onSendMessage, onUploadFile, isLoading, suggestedTopic, selectedAgent }: MessageInputProps) {
+export default function MessageInput({ onSendMessage, onUploadFile, isLoading, selectedAgent }: MessageInputProps) {
   const [message, setMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -50,18 +49,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
     <form onSubmit={handleSend} className="border-t border-border/50 bg-background/80 backdrop-blur-sm p-4">
       <div className="container mx-auto max-w-4xl">
         {/* Add suggested topic hint */}
-        {suggestedTopic && (
-          <div className="mb-2 text-xs text-muted-foreground flex items-center gap-2">
-            <span>💡 Try asking about:</span>
-            <button
-              type="button"
-              onClick={() => setMessage(`Tell me about ${suggestedTopic}`)}
-              className="text-primary hover:underline"
-            >
-              {suggestedTopic}
-            </button>
-          </div>
-        )}
+
         
         <div className="relative">
           <Textarea

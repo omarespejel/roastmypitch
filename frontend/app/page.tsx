@@ -10,17 +10,13 @@ import Header from '@/components/header'
 import AgentSelector from '@/components/agent-selector'
 import ChatInterface from '@/components/chat-interface'
 import MessageInput from '@/components/message-input'
-import ProgressIndicators from '@/components/progress-indicators'
 import OnboardingGuide from '@/components/onboarding-guide'
-import SmartSuggestions from '@/components/smart-suggestions'
-import AdaptiveQuestions from '@/components/adaptive-questions'
-import FeedbackModal from '@/components/feedback-modal'
 import { Card } from '@/app/components/ui/card'
 import { useToast } from '@/app/hooks/use-toast'
 import { Button } from '@/app/components/ui/button'
 import { Github } from 'lucide-react'
 import MagicLinkAuth from '@/components/magic-link-auth'
-import { analyzeCompletedTopics } from '@/lib/topic-analyzer'
+
 
 interface Message {
   role: 'user' | 'assistant'
@@ -58,17 +54,14 @@ export default function Home() {
   const [selectedAgent, setSelectedAgent] = useState('Product Manager')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [completedTopics, setCompletedTopics] = useState<string[]>([])
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [hasUploadedDocument, setHasUploadedDocument] = useState(false)
   const [isConnected, setIsConnected] = useState(true)
   const [actionFeedback, setActionFeedback] = useState('')
   
-  // New state for Socket.io and feedback
+  // New state for Socket.io
   const socket = useRef<Socket | null>(null)
   const [isOtherUserTyping, setIsOtherUserTyping] = useState<string | null>(null)
-  const [showFeedback, setShowFeedback] = useState(false)
-  const [lastFeedbackCount, setLastFeedbackCount] = useState(0)
 
   const founderId = user?.email || "anonymous"
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -82,7 +75,6 @@ export default function Home() {
       
       if (response.ok) {
         setMessages([])
-        setCompletedTopics([])
         setShowOnboarding(true)
         toast({
           title: "🔄 New conversation started",
@@ -118,53 +110,7 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [apiUrl])
 
-  // Memoize missingSections to prevent unnecessary API calls
-  const missingSections = useMemo(() => {
-    return completedTopics.length < 5 ? ['team', 'market', 'traction'] : []
-  }, [completedTopics.length]) // Only recalculate when the length changes
 
-  // Analyze messages for completed topics with toast notifications
-  useEffect(() => {
-    if (messages.length > 0) {
-      const newTopics = analyzeCompletedTopics(messages, selectedAgent)
-      
-      // Check if any new topics were completed
-      const newlyCompleted = newTopics.filter(topic => !completedTopics.includes(topic))
-      
-      if (newlyCompleted.length > 0 && completedTopics.length > 0) {
-        // Show a toast for newly completed topics
-        const topicLabels: { [key: string]: string } = {
-          team: 'Team & Founders',
-          market: 'Market Analysis',
-          problem: 'Problem/Solution Fit',
-          traction: 'Traction Metrics',
-          economics: 'Unit Economics',
-          competition: 'Competitive Analysis',
-          model: 'Business Model',
-          funding: 'Use of Funds',
-          exit: 'Exit Strategy',
-          risks: 'Risk Assessment',
-          persona: 'User Persona',
-          solution: 'Solution Design',
-          roadmap: 'Product Roadmap',
-          metrics: 'Success Metrics',
-          mvp: 'MVP Strategy',
-          narrative: 'Product Story',
-          experiments: 'Learning Velocity'
-        }
-        
-        newlyCompleted.forEach(topic => {
-          toast({
-            title: "✅ Topic Analyzed",
-            description: `${topicLabels[topic] || topic} has been covered!`,
-            duration: 3000,
-          })
-        })
-      }
-      
-      setCompletedTopics(newTopics)
-    }
-  }, [messages, selectedAgent, completedTopics, toast])
 
   // Enhanced useEffect for Supabase and Socket.io integration
   useEffect(() => {
@@ -601,40 +547,7 @@ What would you like to focus on today?`
         onSendMessage={sendMessage}
         onUploadFile={uploadFile}
         isLoading={isLoading}
-        suggestedTopic={messages.length > 2 ? getNextSuggestedTopic() : undefined}
         selectedAgent={selectedAgent}
-      />
-      
-      <FeedbackModal
-        open={showFeedback}
-        onClose={() => setShowFeedback(false)}
-        onSubmit={async (feedback, rating) => {
-          try {
-            await supabase.from('feedback').insert({
-              founder_id: founderId,
-              content: feedback,
-              rating: rating,
-              agent_type: selectedAgent
-            })
-            
-            // Track with PostHog if initialized
-            if (typeof window !== 'undefined' && (window as any).posthog) {
-              posthog.capture('feedback_submitted', {
-                rating,
-                has_comment: feedback.length > 0,
-                agent_type: selectedAgent
-              })
-            }
-            
-            toast({
-              title: "Thanks for your feedback!",
-              description: "Your input helps us improve.",
-              variant: "success" as any,
-            })
-          } catch (error) {
-            console.error('Error submitting feedback:', error)
-          }
-        }}
       />
     </div>
   )
