@@ -249,10 +249,7 @@ What would you like to focus on today?`
             content: analysisMessage
           }])
           
-          // Auto-expand analysis sections
-          if (currentAnalysis.missing_sections) {
-            setCompletedTopics(prev => [...prev, ...currentAnalysis.missing_sections.slice(0, 3)])
-          }
+
         }
       }
     })
@@ -282,7 +279,7 @@ What would you like to focus on today?`
       const shouldSwitch = confirm('Switching agents will start a new conversation. Continue?')
       if (shouldSwitch) {
         setMessages([])
-        setCompletedTopics([]) // Reset progress
+
         setSelectedAgent(agent)
       }
     } else {
