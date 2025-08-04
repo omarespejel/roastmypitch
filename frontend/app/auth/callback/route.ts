@@ -3,9 +3,15 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
+
+  // Force correct origin for production
+  const isProduction = process.env.NODE_ENV === 'production'
+  const origin = isProduction 
+    ? 'https://starknet-founders-bot-frontend-zc93.onrender.com'
+    : new URL(request.url).origin
 
   if (code) {
     const cookieStore = cookies()
@@ -24,7 +30,6 @@ export async function GET(request: NextRequest) {
                 cookieStore.set(name, value, options)
               })
             } catch (error) {
-              // Handle server component error
               console.error('Cookie setting error:', error)
             }
           },
@@ -41,7 +46,8 @@ export async function GET(request: NextRequest) {
       }
 
       if (data.session) {
-        // Successfully authenticated
+        // Successfully authenticated - redirect to home with correct origin
+        console.log('Auth successful, redirecting to:', new URL(next, origin).toString())
         return NextResponse.redirect(new URL(next, origin))
       }
     } catch (error) {
@@ -50,6 +56,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // No code parameter or other error
   return NextResponse.redirect(new URL('/auth/auth-code-error', origin))
 }

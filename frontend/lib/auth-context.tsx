@@ -59,10 +59,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithMagicLink = async (email: string) => {
     try {
+      // Determine correct redirect URL based on environment
+      const getRedirectUrl = () => {
+        if (typeof window !== 'undefined') {
+          const isProduction = window.location.hostname.includes('onrender.com')
+          return isProduction 
+            ? 'https://starknet-founders-bot-frontend-zc93.onrender.com/auth/callback'
+            : `${window.location.origin}/auth/callback`
+        }
+        return 'https://starknet-founders-bot-frontend-zc93.onrender.com/auth/callback'
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: getRedirectUrl(),
           shouldCreateUser: true,
         },
       })
@@ -75,10 +86,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithOAuth = async (provider: 'github') => {
     try {
+      // Same environment-aware logic for OAuth
+      const getRedirectUrl = () => {
+        if (typeof window !== 'undefined') {
+          const isProduction = window.location.hostname.includes('onrender.com')
+          return isProduction 
+            ? 'https://starknet-founders-bot-frontend-zc93.onrender.com/auth/callback'
+            : `${window.location.origin}/auth/callback`
+        }
+        return 'https://starknet-founders-bot-frontend-zc93.onrender.com/auth/callback'
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: getRedirectUrl(),
         },
       })
       return { error }
