@@ -260,18 +260,7 @@ What would you like to focus on today?`
     }
   }, [founderId, selectedAgent, user, apiUrl])
 
-  // Feedback tracking useEffect
-  useEffect(() => {
-    const assistantMessageCount = messages.filter(m => m.role === 'assistant').length
-    
-    // Show feedback every 3 assistant messages
-    if (assistantMessageCount > 0 && 
-        assistantMessageCount % 3 === 0 && 
-        assistantMessageCount !== lastFeedbackCount) {
-      setShowFeedback(true)
-      setLastFeedbackCount(assistantMessageCount)
-    }
-  }, [messages, lastFeedbackCount])
+
 
   const handleAgentSelect = (agent: string) => {
     if (agent !== selectedAgent && messages.length > 0) {
@@ -287,21 +276,7 @@ What would you like to focus on today?`
     }
   }
 
-  // Get next suggested topic
-  const getNextSuggestedTopic = () => {
-    const rubric = selectedAgent === 'Product Manager' 
-      ? ['user personas', 'market opportunity', 'product roadmap', 'success metrics', 'competitive landscape']
-      : ['your founding team', 'market size (TAM)', 'unit economics', 'competitive advantage', 'use of funds']
-    
-    const allTopics = selectedAgent === 'Product Manager'
-      ? ['persona', 'market', 'roadmap', 'metrics', 'competition']
-      : ['team', 'market', 'economics', 'competition', 'funding']
-    
-    // Find first uncovered topic
-    const uncoveredIndex = allTopics.findIndex(topic => !completedTopics.includes(topic))
-    
-    return uncoveredIndex >= 0 ? rubric[uncoveredIndex] : undefined
-  }
+
 
   const sendMessage = async (message: string) => {
     setMessages(prev => [...prev, { role: 'user', content: message }])
@@ -489,55 +464,10 @@ What would you like to focus on today?`
             />
           </Card>
           
-          {/* Progress sidebar - visible on desktop */}
-          {messages.length > 0 && (
-            <div className="hidden lg:block w-80 space-y-4">
-              <ProgressIndicators 
-                selectedAgent={selectedAgent}
-                completedItems={completedTopics}
-                className="sticky top-4"
-              />
-              
-              {/* Show smart suggestions based on conversation, not just document upload */}
-              {messages.length > 2 && (
-                <SmartSuggestions
-                  founderId={founderId}
-                  selectedAgent={selectedAgent}
-                  onActionClick={(action) => sendMessage(action)}
-                />
-              )}
-              
-              <AdaptiveQuestions
-                missingSections={missingSections}
-                selectedAgent={selectedAgent}
-                founderContext="starknet founder"
-                onQuestionSelect={(question) => sendMessage(question)}
-              />
-            </div>
-          )}
+
         </div>
         
-        {/* Mobile progress - shows as collapsible */}
-        {messages.length > 0 && (
-          <div className="lg:hidden mx-4 mb-4">
-            <details className="group">
-              <summary className="cursor-pointer list-none">
-                <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
-                  <span className="text-sm font-medium">Analysis Progress</span>
-                  <span className="text-xs text-muted-foreground">
-                    {completedTopics.length}/10 • Tap to expand
-                  </span>
-                </div>
-              </summary>
-              <div className="mt-2">
-                <ProgressIndicators 
-                  selectedAgent={selectedAgent}
-                  completedItems={completedTopics}
-                />
-              </div>
-            </details>
-          </div>
-        )}
+
       </main>
       
       <MessageInput
