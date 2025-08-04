@@ -62,10 +62,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Determine correct redirect URL based on environment
       const getRedirectUrl = () => {
         if (typeof window !== 'undefined') {
-          const isProduction = window.location.hostname.includes('onrender.com')
-          return isProduction 
+          const isProduction = window.location.hostname.includes('onrender.com') || 
+                               process.env.NODE_ENV === 'production'
+          const redirectUrl = isProduction 
             ? 'https://starknet-founders-bot-frontend-zc93.onrender.com/auth/callback'
             : `${window.location.origin}/auth/callback`
+          
+          console.log('Magic Link redirect URL:', redirectUrl)
+          return redirectUrl
         }
         return 'https://starknet-founders-bot-frontend-zc93.onrender.com/auth/callback'
       }
@@ -89,10 +93,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Same environment-aware logic for OAuth
       const getRedirectUrl = () => {
         if (typeof window !== 'undefined') {
-          const isProduction = window.location.hostname.includes('onrender.com')
-          return isProduction 
+          const isProduction = window.location.hostname.includes('onrender.com') || 
+                               process.env.NODE_ENV === 'production'
+          const redirectUrl = isProduction 
             ? 'https://starknet-founders-bot-frontend-zc93.onrender.com/auth/callback'
             : `${window.location.origin}/auth/callback`
+          
+          console.log('OAuth redirect URL:', redirectUrl)
+          return redirectUrl
         }
         return 'https://starknet-founders-bot-frontend-zc93.onrender.com/auth/callback'
       }

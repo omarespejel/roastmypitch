@@ -5,13 +5,34 @@ import { cookies } from 'next/headers'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  const rawNext = searchParams.get('next') ?? '/'
 
   // Force correct origin for production
   const isProduction = process.env.NODE_ENV === 'production'
   const origin = isProduction 
     ? 'https://starknet-founders-bot-frontend-zc93.onrender.com'
     : new URL(request.url).origin
+
+  // Sanitize the next parameter to prevent localhost redirects
+  const sanitizeNext = (next: string): string => {
+    // If next contains localhost or is an absolute URL with wrong domain, default to '/'
+    if (next.includes('localhost') || 
+        next.includes('127.0.0.1') || 
+        next.includes('10000') ||
+        (next.startsWith('http') && !next.includes('starknet-founders-bot-frontend'))) {
+      console.log('Sanitizing invalid next parameter:', next, '→ /')
+      return '/'
+    }
+    
+    // Ensure relative paths start with /
+    if (!next.startsWith('/') && !next.startsWith('http')) {
+      return '/' + next
+    }
+    
+    return next
+  }
+
+  const next = sanitizeNext(rawNext)
 
   if (code) {
     const cookieStore = cookies()
@@ -47,7 +68,9 @@ export async function GET(request: NextRequest) {
 
       if (data.session) {
         // Successfully authenticated - redirect to home with correct origin
-        console.log('Auth successful, redirecting to:', new URL(next, origin).toString())
+        const redirectUrl = new URL(next, origin).toString()
+        console.log('Auth successful, redirecting to:', redirectUrl)
+        console.log('Origin:', origin, 'Next:', next)
         return NextResponse.redirect(new URL(next, origin))
       }
     } catch (error) {
