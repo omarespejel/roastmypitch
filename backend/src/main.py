@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 import socketio
 from llama_index.core import Settings, SimpleDirectoryReader, VectorStoreIndex
 # --- 1. IMPORT THE SPECIFIC CHAT ENGINE CLASS ---
-from llama_index.core.chat_engine import ContextChatEngine
+from llama_index.core.chat_engine import ContextChatEngine, SimpleChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.storage_context import StorageContext
 from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters
@@ -406,6 +406,12 @@ async def upload_document(
         documents = reader.load_data()
         index.insert_nodes(documents)
 
+        # 🔄 Reset chat engines for this user to transition from SimpleChatEngine to ContextChatEngine
+        keys_to_reset = [key for key in chat_engines.keys() if key.startswith(f"{founder_id}_")]
+        for key in keys_to_reset:
+            logger.info(f"🔄 Resetting chat engine {key} due to first document upload")
+            del chat_engines[key]
+
         # 🔥 Automatically analyze the newly uploaded document for both agent types!
         analysis = None
         try:
@@ -478,27 +484,55 @@ async def handle_chat(request: ChatRequest, req: Request = None):
         if session_key not in chat_engines:
             logger.info(f"🔧 Creating new chat engine for session: {session_key}")
             
+            # Check if user has any uploaded documents
             retriever = index.as_retriever(
                 vector_store_query_mode="default",
                 filters=MetadataFilters(
                     filters=[ExactMatchFilter(key="founder_id", value=founder_id)]
                 ),
             )
+            
+            # Test if documents exist for this user
+            test_results = retriever.retrieve("test query")
+            has_documents = len(test_results) > 0
+            
             memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
-
-            # Get the appropriate LLM and prompt
             llm = get_llm_for_agent(agent_type)
             prompt = get_prompt(agent_type)
             
             logger.info(f"🤖 Using LLM model: {llm.model if hasattr(llm, 'model') else 'Unknown'}")
             logger.info(f"📝 System prompt length: {len(prompt)} characters")
+            logger.info(f"📁 User has documents: {has_documents}")
 
-            chat_engines[session_key] = ContextChatEngine.from_defaults(
-                retriever=retriever,
-                memory=memory,
-                system_prompt=prompt,
-                llm=llm,
-            )
+            if has_documents:
+                # User has uploaded documents - use context chat engine
+                logger.info(f"📚 Creating ContextChatEngine with document retrieval")
+                chat_engines[session_key] = ContextChatEngine.from_defaults(
+                    retriever=retriever,
+                    memory=memory,
+                    system_prompt=prompt,
+                    llm=llm,
+                )
+            else:
+                # New user without documents - use simple chat engine
+                logger.info(f"💬 Creating SimpleChatEngine for conversation without documents")
+                enhanced_prompt = f"""{prompt}
+
+IMPORTANT: The user has not uploaded any documents yet. You should:
+1. Introduce yourself and your role as a {agent_type.value}
+2. Explain how you can help them with their startup
+3. Offer to review their pitch deck if they upload one
+4. Provide general startup advice based on your expertise
+5. Ask relevant questions to understand their business
+
+Be conversational, helpful, and engaging even without documents to analyze."""
+
+                chat_engines[session_key] = SimpleChatEngine.from_defaults(
+                    memory=memory,
+                    system_prompt=enhanced_prompt,
+                    llm=llm,
+                )
+            
             logger.info(f"✅ Chat engine created successfully for {session_key}")
 
         chat_engine = chat_engines[session_key]
