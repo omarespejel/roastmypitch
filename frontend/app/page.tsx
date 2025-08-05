@@ -36,7 +36,7 @@ const formatAnalysisMessage = (analysis: any, agent: string): string => {
     let message = `**Product Analysis Complete! 🎯**\n\n`
     
     if (missing.length > 0) {
-      message += `**Areas needing attention (Lenny Rachitsky framework):**\n`
+      message += `**Areas needing attention:**\n`
       missing.forEach((section: string) => {
         message += `• **${section.charAt(0).toUpperCase() + section.slice(1)}** - Critical for product-market fit\n`
       })
@@ -370,6 +370,16 @@ What would you like to focus on today?`
     const formData = new FormData()
     formData.append('file', file)
     
+    // Set uploading state and show immediate feedback
+    setIsUploading(true)
+    
+    // Show immediate upload started feedback
+    toast({
+      title: "📄 Uploading Document...",
+      description: `Processing ${file.name} - this may take a moment`,
+      variant: "default",
+    })
+    
     try {
       const response = await fetch(`${apiUrl}/upload/${founderId}`, {
         method: 'POST',
@@ -377,6 +387,13 @@ What would you like to focus on today?`
       })
       
       if (!response.ok) throw new Error('Upload failed')
+      
+      // Show processing feedback while waiting for response
+      toast({
+        title: "🔄 Analyzing Document...",
+        description: "Our AI is reviewing your document and generating insights",
+        variant: "default",
+      })
       
       const data = await response.json() as { 
         filename: string
@@ -414,18 +431,21 @@ What would you like to focus on today?`
         }
       } else {
         toast({
-          title: "Document Uploaded",
-          description: `${data.filename} uploaded successfully! I can now provide more detailed analysis.`,
+          title: "✅ Document Uploaded Successfully",
+          description: `${data.filename} is ready! I can now provide more detailed analysis.`,
           variant: "success" as any,
         })
       }
     } catch (error) {
       console.error('Error uploading file:', error)
       toast({
-        title: "Error",
+        title: "❌ Upload Failed",
         description: "Failed to upload document. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      // Always reset uploading state
+      setIsUploading(false)
     }
   }
 
