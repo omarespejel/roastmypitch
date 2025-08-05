@@ -21,6 +21,7 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.11"
     healthCheckPath: /
+    autoDeploy: true
 
   # Frontend Web Service
   - type: web
