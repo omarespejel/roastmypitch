@@ -133,6 +133,7 @@ index = VectorStoreIndex.from_vector_store(
 # --- In-Memory Session Storage ---
 chat_engines = {}
 session_last_activity = {}  # Track last activity time for cleanup
+session_agent_types = {}  # Track current agent type for each session
 session_lock = threading.Lock()  # Thread safety for session management
 
 # Session cleanup configuration
@@ -158,6 +159,8 @@ def cleanup_inactive_sessions():
                 logger.info(f"🧹 Cleaned up inactive session: {session_key}")
             if session_key in session_last_activity:
                 del session_last_activity[session_key]
+            if session_key in session_agent_types:
+                del session_agent_types[session_key]
         
         if sessions_to_remove:
             logger.info(f"🧹 Cleaned up {len(sessions_to_remove)} inactive sessions")
@@ -487,7 +490,8 @@ async def upload_document(
         index.insert_nodes(documents)
 
         # 🔄 Upgrade existing chat engines to ContextChatEngine while preserving memory
-        keys_to_upgrade = [key for key in chat_engines.keys() if key.startswith(f"{founder_id}_")]
+        # With unified sessions, just check if this founder has an active session
+        keys_to_upgrade = [founder_id] if founder_id in chat_engines else []
         
         # Store preserved memories on the function object for later retrieval
         if not hasattr(handle_chat, '_preserved_memories'):
@@ -590,9 +594,11 @@ async def handle_chat(request: ChatRequest, req: Request = None):
         logger.warning(f"❌ Empty message received from {founder_id}")
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    session_key = f"{founder_id}_{agent_type.value}"
+    # Use unified session key - agents share conversation history
+    session_key = founder_id
     
     try:
+        # Check if we need to create a new engine or update existing one for agent switch
         if session_key not in chat_engines:
             logger.info(f"🔧 Creating new chat engine for session: {session_key}")
             
@@ -674,10 +680,81 @@ Be conversational, insightful, and directly engage with their content."""
                     system_prompt=enhanced_prompt,
                     llm=llm,
                 )
-                # Track session activity
+                # Track session activity and agent type
                 update_session_activity(session_key)
+                session_agent_types[session_key] = agent_type
             
             logger.info(f"✅ Chat engine created successfully for {session_key}")
+        else:
+            # Session exists - check if agent has switched
+            current_agent = session_agent_types.get(session_key)
+            if current_agent != agent_type:
+                logger.info(f"🔄 Agent switch detected: {current_agent} → {agent_type}")
+                
+                # Preserve existing memory but update system prompt and LLM
+                existing_engine = chat_engines[session_key]
+                existing_memory = existing_engine.memory if hasattr(existing_engine, 'memory') else None
+                
+                if existing_memory:
+                    logger.info(f"🧠 Preserving conversation memory during agent switch")
+                    
+                    # Get new prompt and LLM for the switched agent
+                    llm = get_llm_for_agent(agent_type)
+                    prompt = get_prompt(agent_type)
+                    
+                    # Check if user has documents for proper prompt selection
+                    retriever = index.as_retriever(
+                        vector_store_query_mode="default",
+                        filters=MetadataFilters(
+                            filters=[ExactMatchFilter(key="founder_id", value=founder_id)]
+                        ),
+                    )
+                    test_results = retriever.retrieve("test query")
+                    has_documents = len(test_results) > 0
+                    
+                    if has_documents:
+                        enhanced_prompt = f"""{prompt}
+
+IMPORTANT: The user has uploaded documents that you can access and analyze. You have full access to:
+- Uploaded pitch decks, PRDs, or business documents
+- Document content for detailed analysis and feedback
+- Ability to reference specific sections, data, and insights from their materials
+
+When users ask about their uploaded content:
+1. Use the retrieved context to provide specific, detailed analysis
+2. Reference exact information from their documents
+3. Point out strengths, weaknesses, and gaps you identify
+4. Provide actionable recommendations based on their specific content
+5. Ask follow-up questions about unclear sections in their documents
+
+You can analyze their pitch, strategy, market analysis, financial projections, or any other content they've shared."""
+
+                        chat_engines[session_key] = ContextChatEngine.from_defaults(
+                            retriever=retriever,
+                            memory=existing_memory,
+                            system_prompt=enhanced_prompt,
+                            llm=llm,
+                        )
+                    else:
+                        enhanced_prompt = f"""{prompt}
+
+CONTEXT: The user has not uploaded any documents yet, but respond naturally to whatever they share with you. 
+
+- If they share text, ideas, or concepts, analyze and engage with that content directly
+- Use your expertise as a {agent_type.value} to provide relevant insights and questions
+- You can suggest uploading documents for deeper analysis if appropriate
+- Always respond to what the user actually wrote, don't give generic introductions unless they're just saying hello
+
+Be conversational, insightful, and directly engage with their content."""
+
+                        chat_engines[session_key] = SimpleChatEngine.from_defaults(
+                            memory=existing_memory,
+                            system_prompt=enhanced_prompt,
+                            llm=llm,
+                        )
+                    
+                    session_agent_types[session_key] = agent_type
+                    logger.info(f"✅ Chat engine updated for agent switch to {agent_type}")
 
         chat_engine = chat_engines[session_key]
         # Update activity for existing session
@@ -742,30 +819,26 @@ Be conversational, insightful, and directly engage with their content."""
 
 @app.post("/reset/{founder_id}")
 async def reset_chat(founder_id: str, agent_type: Optional[str] = None):
-    """Reset chat memory for a user and specific agent, or all agents if not specified"""
+    """Reset chat memory for a user (unified conversation across agents)"""
     
-    if agent_type:
-        session_key = f"{founder_id}_{agent_type}"
-        if session_key in chat_engines:
-            del chat_engines[session_key]
-            logger.info(f"🔄 Reset chat session: {session_key}")
-            return {"message": f"Chat session for {agent_type} has been reset."}
-        else:
-            logger.info(f"🔄 No active session found for {session_key}")
-            return {"message": f"No active session found for {agent_type}."}
-    else:
-        # Reset all sessions for this founder
-        keys_to_delete = [
-            key for key in chat_engines.keys() if key.startswith(f"{founder_id}_")
-        ]
-        for key in keys_to_delete:
-            del chat_engines[key]
-            logger.info(f"🔄 Reset chat session: {key}")
+    # With unified sessions, we just reset the single session for this founder
+    # agent_type parameter is kept for API compatibility but not used
+    session_key = founder_id
+    
+    if session_key in chat_engines:
+        del chat_engines[session_key]
+        logger.info(f"🔄 Reset unified chat session: {session_key}")
         
-        count = len(keys_to_delete)
-        return {
-            "message": f"Reset {count} chat session(s) for founder {founder_id}."
-        }
+        # Also clean up tracking dictionaries
+        if session_key in session_last_activity:
+            del session_last_activity[session_key]
+        if session_key in session_agent_types:
+            del session_agent_types[session_key]
+            
+        return {"message": f"Chat conversation has been reset for founder {founder_id}."}
+    else:
+        logger.info(f"🔄 No active session found for {session_key}")
+        return {"message": f"No active conversation found for founder {founder_id}."}
 
 
 # --- Analysis and Research Endpoints ---
