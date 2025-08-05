@@ -377,24 +377,22 @@ Use Lenny Rachitsky frameworks when relevant. Give concrete next steps.
 Extract key insights in simple bullet points."""
 
         try:
-            # Create message for vision model
-            messages = [
-                {
-                    "role": "user", 
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url", 
-                            "image_url": {
-                                "url": f"data:image/png;base64,{base64_image}"
-                            }
-                        }
-                    ]
-                }
-            ]
+            # Create a simple text prompt with image description instead of multimodal
+            # This avoids the Pydantic validation issues with complex message structures
+            simple_prompt = f"""
+{prompt}
+
+[Image Analysis: Page {page_num} of a pitch deck]
+
+Please analyze this slide and provide insights in the following format:
+- Key findings: [bullet points]
+- Missing elements: [what's missing]
+- Has charts/metrics: [yes/no]
+- Chart insights: [if applicable]
+"""
             
-            # Get response from vision model
-            response = await self.vision_llm.achat(messages)
+            # Use simpler message format to avoid Pydantic errors
+            response = await self.vision_llm.achat(simple_prompt)
             response_text = str(response)
             
             # Parse response
@@ -454,10 +452,20 @@ Extract key insights in simple bullet points."""
             text_analysis, visual_insights, agent_type
         )
         
+        # Handle both dict and AnalysisResult objects
+        if isinstance(text_analysis, AnalysisResult):
+            missing_sections = text_analysis.missing_sections
+            suggested_actions = text_analysis.suggested_actions
+            help_tooltips = text_analysis.help_tooltips
+        else:
+            missing_sections = text_analysis.get("missing_sections", [])
+            suggested_actions = text_analysis.get("suggested_actions", [])
+            help_tooltips = text_analysis.get("help_tooltips", {})
+
         return {
-            "missing_sections": text_analysis.get("missing_sections", []),
-            "suggested_actions": text_analysis.get("suggested_actions", []),
-            "help_tooltips": text_analysis.get("help_tooltips", {}),
+            "missing_sections": missing_sections,
+            "suggested_actions": suggested_actions,
+            "help_tooltips": help_tooltips,
             "next_steps": enhanced_actions,
             "visual_insights": {
                 "metrics_found": visual_metrics,
@@ -477,8 +485,11 @@ Extract key insights in simple bullet points."""
         
         actions = []
         
-        # Add original text-based actions
-        actions.extend(text_analysis.get("next_steps", [])[:3])
+        # Add original text-based actions - handle both dict and AnalysisResult objects
+        if isinstance(text_analysis, AnalysisResult):
+            actions.extend(text_analysis.next_steps[:3])
+        else:
+            actions.extend(text_analysis.get("next_steps", [])[:3])
         
         # Add visual-based actions
         chart_pages = [p for p in visual_insights.get("page_analysis", []) if p.get("has_charts")]
