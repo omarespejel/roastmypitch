@@ -85,9 +85,31 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
             </Button>
           </div>
         </div>
-        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-          <p>Press Enter to send, Shift+Enter for new line</p>
-          <p>Documents optional - just start chatting about your idea!</p>
+        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between">
+            <p>Press Enter to send, Shift+Enter for new line</p>
+            <p>Documents optional - just start chatting about your idea!</p>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-2 space-y-1">
+            <p className="text-blue-700 dark:text-blue-300 font-medium">
+              📄 Pitch Deck Tips (Alpha Version):
+            </p>
+            <p className="text-blue-600 dark:text-blue-400">
+              • Compress your PDF first at{' '}
+              <a 
+                href="https://smallpdf.com/compress-pdf" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline hover:text-blue-800 dark:hover:text-blue-200"
+              >
+                smallpdf.com/compress-pdf
+              </a>{' '}
+              for faster processing
+            </p>
+            <p className="text-blue-600 dark:text-blue-400">
+              • Our visual pitch analyzer is in alpha - we're improving chart & graph recognition
+            </p>
+          </div>
         </div>
       </div>
       <input
