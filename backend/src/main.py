@@ -660,14 +660,14 @@ You can analyze their pitch, strategy, market analysis, financial projections, o
                 logger.info(f"💬 Creating SimpleChatEngine for conversation without documents")
                 enhanced_prompt = f"""{prompt}
 
-IMPORTANT: The user has not uploaded any documents yet. You should:
-1. Introduce yourself and your role as a {agent_type.value}
-2. Explain how you can help them with their startup
-3. Offer to review their pitch deck if they upload one
-4. Provide general startup advice based on your expertise
-5. Ask relevant questions to understand their business
+CONTEXT: The user has not uploaded any documents yet, but respond naturally to whatever they share with you. 
 
-Be conversational, helpful, and engaging even without documents to analyze."""
+- If they share text, ideas, or concepts, analyze and engage with that content directly
+- Use your expertise as a {agent_type.value} to provide relevant insights and questions
+- You can suggest uploading documents for deeper analysis if appropriate
+- Always respond to what the user actually wrote, don't give generic introductions unless they're just saying hello
+
+Be conversational, insightful, and directly engage with their content."""
 
                 chat_engines[session_key] = SimpleChatEngine.from_defaults(
                     memory=memory,
