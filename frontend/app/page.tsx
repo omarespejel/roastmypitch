@@ -11,6 +11,7 @@ import AgentSelector from '@/components/agent-selector'
 import ChatInterface from '@/components/chat-interface'
 import MessageInput from '@/components/message-input'
 import OnboardingGuide from '@/components/onboarding-guide'
+import SuggestedQuestions from '@/components/suggested-questions'
 import { Card } from '@/app/components/ui/card'
 import { useToast } from '@/app/hooks/use-toast'
 import { Button } from '@/app/components/ui/button'
@@ -24,29 +25,60 @@ interface Message {
   agent?: string // Track which agent sent the message
 }
 
-// Helper function to format analysis results into a readable message
+// Enhanced analysis message formatting with agent-specific insights
 const formatAnalysisMessage = (analysis: any, agent: string): string => {
-  const sections = []
+  const missing = analysis.missing_sections || []
+  const suggestions = analysis.suggested_actions || []
+  const nextSteps = analysis.next_steps || []
   
-  if (analysis.missing_sections && analysis.missing_sections.length > 0) {
-    sections.push(`**Missing Sections Identified:**\n${analysis.missing_sections.map((section: string) => `• ${section}`).join('\n')}`)
+  if (agent === 'Product Manager') {
+    let message = `**Product Analysis Complete! 🎯**\n\n`
+    
+    if (missing.length > 0) {
+      message += `**Areas needing attention (Lenny Rachitsky framework):**\n`
+      missing.forEach((section: string) => {
+        message += `• **${section.charAt(0).toUpperCase() + section.slice(1)}** - Critical for product-market fit\n`
+      })
+      message += `\n`
+    }
+    
+    if (nextSteps.length > 0) {
+      message += `**Immediate next steps to strengthen your product:**\n`
+      nextSteps.forEach((step: string, i: number) => {
+        message += `${i + 1}. ${step}\n`
+      })
+      message += `\n`
+    }
+    
+    message += `**Product Strategy Insight:** Your pitch shows ${missing.length === 0 ? 'strong product fundamentals' : 'opportunities to clarify your value proposition'}. Focus on the Jobs-to-be-Done framework - what specific problem are you solving that users will pay for?\n\n`
+    message += `💡 **Ready to dive deeper?** Click on the suggested questions or ask me about user research, feature prioritization, or go-to-market strategy.`
+    
+    return message
+  } else {
+    // Shark VC approach
+    let message = `**Investment Analysis Complete! 🦈**\n\n`
+    
+    if (missing.length > 0) {
+      message += `**Red flags for investors:**\n`
+      missing.forEach((section: string) => {
+        message += `• **Missing ${section}** - VCs need to see this for funding decisions\n`
+      })
+      message += `\n`
+    }
+    
+    if (nextSteps.length > 0) {
+      message += `**Fix these before your next investor meeting:**\n`
+      nextSteps.forEach((step: string, i: number) => {
+        message += `${i + 1}. ${step}\n`
+      })
+      message += `\n`
+    }
+    
+    message += `**Investment Reality Check:** ${missing.length === 0 ? 'Your pitch covers the basics, but' : 'You have gaps that will hurt your chances. Fix these and'} focus on proving massive market opportunity and unfair advantage.\n\n`
+    message += `🔥 **Want the tough questions?** Use the suggested prompts or ask about market size, traction metrics, or competition.`
+    
+    return message
   }
-  
-  if (analysis.smart_suggestions && analysis.smart_suggestions.length > 0) {
-    sections.push(`**Smart Suggestions:**\n${analysis.smart_suggestions.map((suggestion: any) => `• ${suggestion.title || suggestion}`).join('\n')}`)
-  }
-  
-  if (analysis.score) {
-    sections.push(`**Overall Score:** ${analysis.score}/100`)
-  }
-  
-  const intro = agent === 'Product Manager' 
-    ? "I've analyzed your document from a product perspective. Here's what I found:"
-    : "I've reviewed your pitch deck like a VC would. Here are my insights:"
-  
-  return sections.length > 0 
-    ? `${intro}\n\n${sections.join('\n\n')}\n\nWhat would you like to explore further?`
-    : `${intro}\n\nYour document looks comprehensive! What specific aspects would you like to discuss?`
 }
 
 export default function Home() {
@@ -55,9 +87,11 @@ export default function Home() {
   const [selectedAgent, setSelectedAgent] = useState('Product Manager')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [hasUploadedDocument, setHasUploadedDocument] = useState(false)
   const [isConnected, setIsConnected] = useState(true)
+  const [analysisData, setAnalysisData] = useState<any>(null)
   // New state for Socket.io
   const socket = useRef<Socket | null>(null)
   const [isOtherUserTyping, setIsOtherUserTyping] = useState<string | null>(null)
@@ -465,10 +499,23 @@ What would you like to focus on today?`
       
       <MessageInput
         onSendMessage={sendMessage}
-        onUploadFile={uploadFile}
-        isLoading={isLoading}
-        selectedAgent={selectedAgent}
-      />
+                  onUploadFile={uploadFile}
+          isLoading={isLoading || isUploading}
+          selectedAgent={selectedAgent}
+        />
+        
+        {/* Suggested Questions Panel */}
+        {user && (
+          <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden xl:block">
+            <SuggestedQuestions
+              selectedAgent={selectedAgent}
+              analysisData={analysisData}
+              hasUploadedDocument={hasUploadedDocument}
+              onQuestionClick={sendMessage}
+              isVisible={!showOnboarding}
+            />
+          </div>
+        )}
     </div>
   )
 } 

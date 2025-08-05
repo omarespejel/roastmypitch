@@ -92,7 +92,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
           </div>
           <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-2 space-y-1">
             <p className="text-blue-700 dark:text-blue-300 font-medium">
-              📄 Pitch Deck Tips (Alpha Version):
+              📄 Pitch Deck Tips (Vision Analysis):
             </p>
             <p className="text-blue-600 dark:text-blue-400">
               • Compress your PDF first at{' '}
@@ -107,7 +107,10 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
               for faster processing
             </p>
             <p className="text-blue-600 dark:text-blue-400">
-              • Our visual pitch analyzer is in alpha - we're improving chart & graph recognition
+              • Large files with charts may take up to a minute to analyze
+            </p>
+            <p className="text-blue-600 dark:text-blue-400">
+              • Check the suggested questions panel after upload!
             </p>
           </div>
         </div>
