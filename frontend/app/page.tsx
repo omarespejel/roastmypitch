@@ -21,6 +21,7 @@ import MagicLinkAuth from '@/components/magic-link-auth'
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  agent?: string // Track which agent sent the message
 }
 
 // Helper function to format analysis results into a readable message
@@ -64,10 +65,11 @@ export default function Home() {
   const founderId = user?.email || "anonymous"
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-  // Reset conversation function
+  // Reset conversation function (resets all agents)
   const resetConversation = async () => {
     try {
-      const response = await fetch(`${apiUrl}/reset/${founderId}?agent_type=${selectedAgent}`, {
+      // Reset all agents by not specifying agent_type
+      const response = await fetch(`${apiUrl}/reset/${founderId}`, {
         method: 'POST',
       })
       
@@ -76,7 +78,7 @@ export default function Home() {
         setShowOnboarding(true)
         toast({
           title: "🔄 New conversation started",
-          description: "Chat memory has been reset. Start fresh!",
+          description: "Chat memory has been reset for all agents. Start fresh!",
           variant: "success" as any,
         })
       }
@@ -117,17 +119,20 @@ export default function Home() {
       forceNew: true
     })
 
-    // Load messages from Supabase
+    // Load messages from Supabase (all agents for unified conversation)
     const loadMessages = async () => {
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
         .eq('founder_id', founderId)
-        .eq('agent_type', selectedAgent)
         .order('created_at', { ascending: true })
 
       if (data && !error) {
-        const loadedMessages = data.map(msg => ({ role: msg.role, content: msg.content }))
+        const loadedMessages = data.map(msg => ({ 
+          role: msg.role, 
+          content: msg.content, 
+          agent: msg.agent_type 
+        }))
         setMessages(loadedMessages)
         
         // Check if this is a returning user with previous messages
@@ -165,7 +170,7 @@ What would you like to focus on today?`
           const data = await response.json() as { reply: string }
           
           // Add welcome back message to UI
-          setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+          setMessages(prev => [...prev, { role: 'assistant', content: data.reply, agent: selectedAgent }])
           
           // Store in Supabase
           await supabase.from('chat_messages').insert({
@@ -257,23 +262,23 @@ What would you like to focus on today?`
 
 
   const handleAgentSelect = (agent: string) => {
-    if (agent !== selectedAgent && messages.length > 0) {
-      // Optionally clear messages when switching agents
-      const shouldSwitch = confirm('Switching agents will start a new conversation. Continue?')
-      if (shouldSwitch) {
-        setMessages([])
-
-        setSelectedAgent(agent)
-      }
-    } else {
-      setSelectedAgent(agent)
+    // Simply switch agents without clearing messages for unified conversation
+    setSelectedAgent(agent)
+    
+    // Show a toast to indicate the agent switch
+    if (agent !== selectedAgent) {
+      toast({
+        title: `🔄 Switched to ${agent}`,
+        description: "Continuing the same conversation with a different perspective",
+        variant: "default",
+      })
     }
   }
 
 
 
   const sendMessage = async (message: string) => {
-    setMessages(prev => [...prev, { role: 'user', content: message }])
+    setMessages(prev => [...prev, { role: 'user', content: message, agent: selectedAgent }])
     setIsLoading(true)
     
     try {

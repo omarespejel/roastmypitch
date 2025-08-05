@@ -9,6 +9,7 @@ import { SharkIcon, BrainIcon } from "./custom-icons"
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  agent?: string
 }
 
 interface ChatInterfaceProps {
@@ -61,48 +62,89 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
         </div>
       )}
       
-      {messages.map((message, index) => (
-        <div
-          key={index}
-          className={cn(
-            "flex gap-3 animate-slide-up",
-            message.role === 'user' ? 'justify-end' : 'justify-start'
-          )}
-          style={{ animationDelay: `${index * 50}ms` }}
-        >
-          {message.role === 'assistant' && (
-            <div className="flex-shrink-0">
-              <div className={cn(
-                "p-2.5 rounded-full bg-gradient-to-br shadow-lg",
-                getAgentColor()
-              )}>
-                {getAgentIcon()}
-              </div>
-            </div>
-          )}
-          
+      {messages.map((message, index) => {
+        // For assistant messages, use the agent info from the message or fallback to current selectedAgent
+        const messageAgent = message.role === 'assistant' ? (message.agent || selectedAgent) : null
+        
+        // Get agent-specific styling based on the message's agent
+        const getMessageAgentIcon = () => {
+          if (messageAgent === 'Product Manager') {
+            return <BrainIcon className="h-5 w-5" />
+          }
+          return <SharkIcon className="h-5 w-5" />
+        }
+
+        const getMessageAgentColor = () => {
+          return messageAgent === 'Product Manager' 
+            ? 'from-blue-600/20 to-cyan-600/20' 
+            : 'from-red-600/20 to-orange-600/20'
+        }
+
+        return (
           <div
+            key={index}
             className={cn(
-              "max-w-[70%] rounded-2xl px-5 py-3.5 shadow-sm",
-              message.role === 'user' 
-                ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white' 
-                : 'bg-secondary/60 backdrop-blur-sm border border-border/50'
+              "flex gap-3 animate-slide-up",
+              message.role === 'user' ? 'justify-end' : 'justify-start'
             )}
+            style={{ animationDelay: `${index * 50}ms` }}
           >
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-              {message.content}
-            </p>
-          </div>
-          
-          {message.role === 'user' && (
-            <div className="flex-shrink-0">
-              <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg">
-                <User className="h-5 w-5 text-white" />
+            {message.role === 'assistant' && (
+              <div className="flex-shrink-0">
+                <div className={cn(
+                  "p-2.5 rounded-full bg-gradient-to-br shadow-lg",
+                  getMessageAgentColor()
+                )}>
+                  {getMessageAgentIcon()}
+                </div>
+              </div>
+            )}
+            
+            <div
+              className={cn(
+                "max-w-[70%] rounded-2xl shadow-sm",
+                message.role === 'user' 
+                  ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white px-5 py-3.5' 
+                  : 'bg-secondary/60 backdrop-blur-sm border border-border/50'
+              )}
+            >
+              {message.role === 'assistant' && (
+                <div className="px-5 pt-3 pb-1 border-b border-border/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getMessageAgentIcon()}
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {messageAgent}
+                      </span>
+                    </div>
+                    {messageAgent !== selectedAgent && (
+                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md">
+                        Previous chat
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <div className={cn(
+                message.role === 'assistant' ? 'px-5 py-3' : ''
+              )}>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {message.content}
+                </p>
               </div>
             </div>
-          )}
-        </div>
-      ))}
+            
+            {message.role === 'user' && (
+              <div className="flex-shrink-0">
+                <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
       
       {isLoading && (
         <div className="flex gap-3 justify-start animate-slide-up">
