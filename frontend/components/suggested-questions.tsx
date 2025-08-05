@@ -28,12 +28,14 @@ export default function SuggestedQuestions({
     const generateQuestions = () => {
       if (selectedAgent === 'Product Manager') {
         const pmQuestions = [
-          "What job is the user hiring my product to do? (Jobs-to-be-Done)",
-          "Who exactly is my ideal customer? Get granular.",
-          "How do people solve this problem today? What's broken?",
+          "Help me create and refine the problem statement for my product",
+          "Help me refine my customer persona",
+          "What job is the user hiring my product to do?",
+          "How do people solve this problem today and what's broken?",
           "What's the smallest version that proves people want this?",
           "How will I know if people actually need this product?",
-          "What's my wedge into the market? First 100 users strategy?",
+          "What's my wedge into the market for the first 100 users?",
+          "What questions should I ask in user interviews?",
         ]
 
         // Add analysis-specific questions if document uploaded
