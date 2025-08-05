@@ -27,6 +27,24 @@ from .adaptive_questioning import AdaptiveQuestionEngine
 from .analysis_engine import PitchDeckAnalyzer
 from .prompts import AgentType, get_prompt
 
+# Helper function to clean citation numbers from AI responses
+def clean_citations(text: str) -> str:
+    """Remove citation numbers like [1], [2], [1][2][4] from AI responses."""
+    if not text:
+        return text
+    
+    # Remove citation patterns like [1], [2], [1][2][4], etc.
+    # This regex matches one or more sequences of [number] at the end of the text
+    cleaned = re.sub(r'(\s*\[\d+\])+\s*$', '', text.strip())
+    
+    # Also remove citations that appear mid-text
+    cleaned = re.sub(r'\[\d+\]', '', cleaned)
+    
+    # Clean up any double spaces that might result
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    
+    return cleaned
+
 # --- Load Environment and Configure Settings ---
 load_dotenv()
 
@@ -571,18 +589,21 @@ Be conversational, helpful, and engaging even without documents to analyze."""
         response_text = str(response) if response else ""
         logger.info(f"🎯 AI Response received - Length: {len(response_text)} chars")
         logger.info(f"🎯 Raw response object type: {type(response)}")
-        logger.info(f"🎯 Raw response object: {repr(response)}")
         
         if len(response_text) > 0:
-            logger.info(f"🎯 AI Response preview: '{response_text[:200]}...'")
+            logger.info(f"🎯 AI Response preview (before cleaning): '{response_text[:200]}...'")
         
-        if not response_text or not response_text.strip():
+        # Clean citation numbers from the response
+        cleaned_response = clean_citations(response_text)
+        logger.info(f"🧹 Cleaned response preview: '{cleaned_response[:200]}...'")
+        
+        if not cleaned_response or not cleaned_response.strip():
             logger.error(f"❌ AI returned empty response for message: '{request.message}'")
-            logger.error(f"❌ Response was: {repr(response)}")
+            logger.error(f"❌ Original response was: {repr(response)}")
             # Return a fallback response instead of empty
             return {"reply": "I apologize, but I didn't generate a response. Could you please rephrase your question?"}
         
-        return {"reply": response_text}
+        return {"reply": cleaned_response}
         
     except asyncio.TimeoutError:
         logger.error(f"⏰ Timeout waiting for AI response from {founder_id}")
