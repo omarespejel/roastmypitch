@@ -7,7 +7,9 @@ services:
     rootDir: backend
     region: frankfurt
     plan: starter
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      apt-get update && apt-get install -y poppler-utils &&
+      pip install -r requirements.txt
     startCommand: uvicorn src.main:socket_app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENROUTER_API_KEY
