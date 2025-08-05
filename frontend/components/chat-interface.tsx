@@ -63,8 +63,8 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
       )}
       
       {messages.map((message, index) => {
-        // For assistant messages, use the agent info from the message or fallback to current selectedAgent
-        const messageAgent = message.role === 'assistant' ? (message.agent || selectedAgent) : null
+        // For assistant messages, ALWAYS use the agent info from the message (don't fallback to current selectedAgent)
+        const messageAgent = message.role === 'assistant' ? message.agent : null
         
         // Get agent-specific styling based on the message's agent
         const getMessageAgentIcon = () => {
