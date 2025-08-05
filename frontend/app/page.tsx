@@ -57,8 +57,6 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [hasUploadedDocument, setHasUploadedDocument] = useState(false)
   const [isConnected, setIsConnected] = useState(true)
-  const [actionFeedback, setActionFeedback] = useState('')
-  
   // New state for Socket.io
   const socket = useRef<Socket | null>(null)
   const [isOtherUserTyping, setIsOtherUserTyping] = useState<string | null>(null)
@@ -92,11 +90,7 @@ export default function Home() {
     }
   }
 
-  // Helper function to show success feedback
-  const showSuccessFeedback = (message: string) => {
-    setActionFeedback(message)
-    setTimeout(() => setActionFeedback(''), 3000)
-  }
+
 
   // Connection monitoring
   useEffect(() => {
@@ -316,8 +310,7 @@ What would you like to focus on today?`
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
       
-      // Show success feedback
-      showSuccessFeedback('Message sent successfully!')
+
       
       // Emit typing indicator via Socket.io
       socket.current?.emit('stop_typing', { founderId })
@@ -434,12 +427,7 @@ What would you like to focus on today?`
           </div>
         )}
 
-        {/* Success Feedback */}
-        {actionFeedback && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded text-sm mx-4 mb-4 animate-slide-up">
-            ✅ {actionFeedback}
-          </div>
-        )}
+
 
         <AgentSelector 
           selectedAgent={selectedAgent} 
