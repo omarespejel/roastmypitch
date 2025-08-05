@@ -25,7 +25,7 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 from pydantic import BaseModel
 
 from .adaptive_questioning import AdaptiveQuestionEngine
-from .analysis_engine import PitchDeckAnalyzer
+from .analysis_engine import EnhancedPitchDeckAnalyzer as PitchDeckAnalyzer
 from .prompts import AgentType, get_prompt
 
 # Helper function to clean citation numbers from AI responses
