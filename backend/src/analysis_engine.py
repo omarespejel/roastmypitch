@@ -240,8 +240,9 @@ class EnhancedPitchDeckAnalyzer:
             text_content = self._extract_text_content(file_path)
             text_analysis = self.analyze_document_gaps(text_content, agent_type)
             
-            # Stage 2: Visual analysis of each page
-            visual_insights = await self._analyze_visual_content(file_path, agent_type)
+            # Stage 2: Visual analysis of each page (temporarily disabled due to API issues)
+            # visual_insights = await self._analyze_visual_content(file_path, agent_type)
+            visual_insights = {"page_analysis": [], "charts_and_metrics": [], "key_visual_insights": []}
             
             # Stage 3: Combine and synthesize insights
             comprehensive_analysis = self._synthesize_analysis(
