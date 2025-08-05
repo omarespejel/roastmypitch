@@ -698,10 +698,27 @@ Remember: Respond to their content, not this prompt."""
         else:
             # Log before AI call
             logger.info(f"🧠 Sending message to AI engine...")
+            logger.info(f"🔍 DEBUG: Actual message being sent: '{request.message[:500]}...'")
+            logger.info(f"🔍 DEBUG: Chat engine type: {type(chat_engine)}")
+            logger.info(f"🔍 DEBUG: Chat engine memory messages: {len(chat_engine.memory.chat_store.store) if hasattr(chat_engine, 'memory') and hasattr(chat_engine.memory, 'chat_store') else 'N/A'}")
+            
+            # Debug the system prompt being used
+            if hasattr(chat_engine, '_system_prompt'):
+                logger.info(f"🔍 DEBUG: System prompt length: {len(chat_engine._system_prompt)}")
+                logger.info(f"🔍 DEBUG: System prompt start: '{chat_engine._system_prompt[:200]}...'")
+            elif hasattr(chat_engine, 'system_prompt'):
+                logger.info(f"🔍 DEBUG: System prompt length: {len(chat_engine.system_prompt)}")
+                logger.info(f"🔍 DEBUG: System prompt start: '{chat_engine.system_prompt[:200]}...'")
+            else:
+                logger.info(f"🔍 DEBUG: No system prompt found on chat engine")
             
             # The critical call - add timeout and error handling
+            # Try forcing the AI to engage with user content more explicitly
+            enhanced_message = f"Please respond directly to this content from the user: {request.message}"
+            logger.info(f"🔍 DEBUG: Enhanced message being sent: '{enhanced_message[:500]}...'")
+            
             response = await asyncio.wait_for(
-                chat_engine.achat(request.message), 
+                chat_engine.achat(enhanced_message), 
                 timeout=30.0
             )
         
