@@ -2,7 +2,8 @@
 
 import { Card, CardContent } from "@/app/components/ui/card"
 import { Button } from "@/app/components/ui/button"
-import { X, FileText, MessageSquare, CheckCircle, AlertCircle } from "lucide-react"
+import { Badge } from "@/app/components/ui/badge"
+import { X, FileText, MessageSquare, CheckCircle, AlertCircle, Zap } from "lucide-react"
 import { useState } from "react"
 
 interface OnboardingGuideProps {
@@ -51,9 +52,29 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
         </div>
         
         <CardContent className="pt-6 pb-4">
-          <h3 className="text-lg font-semibold mb-4">Welcome to Starknet Founders Bot</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-semibold">Welcome to Starknet Founders Bot</h3>
+            <Badge 
+              variant="secondary" 
+              className="text-[10px] px-2 py-0.5 bg-orange-100 text-orange-800 border-orange-300"
+            >
+              ALPHA
+            </Badge>
+          </div>
           
           <div className="space-y-4">
+            {/* Alpha Version Notice */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                <Zap className="h-4 w-4 text-orange-600" />
+                Alpha Version - We Need Your Feedback!
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                You're using an early version of this AI advisor. Every conversation helps us improve. 
+                Please share your experience, bugs, or suggestions with <span className="font-medium text-orange-700">@espejelomar</span> on Telegram.
+              </p>
+            </div>
+
             <div className="bg-primary/5 rounded-lg p-4">
               <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
                 <span className="text-lg">👋</span> Getting Started
@@ -106,8 +127,11 @@ export default function OnboardingGuide({ onClose }: OnboardingGuideProps) {
               </p>
             </div>
 
-            <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+            <div className="text-xs text-muted-foreground text-center pt-2 border-t space-y-1">
               <p>A Starknet Foundation program to support ecosystem startups</p>
+              <p className="font-medium text-orange-700">
+                🚧 Alpha Version: Help us improve by sharing your feedback!
+              </p>
               <p>Issues or feedback? Contact <span className="text-primary font-medium">@espejelomar</span> on Telegram</p>
             </div>
           </div>

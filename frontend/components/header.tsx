@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/app/components/ui/button"
+import { Badge } from "@/app/components/ui/badge"
 import { LogOut, Sparkles, Mail, Github, RotateCcw } from "lucide-react"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
@@ -22,10 +23,20 @@ export default function Header({ onResetConversation }: HeaderProps) {
                 <Sparkles className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Starknet Founders Bot
-                </h1>
-                <p className="text-xs text-muted-foreground">A Starknet Foundation program</p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Starknet Founders Bot
+                  </h1>
+                  <Badge 
+                    variant="destructive" 
+                    className="text-[10px] px-2 py-0.5 bg-orange-500 hover:bg-orange-600 border-orange-600 animate-pulse"
+                  >
+                    ALPHA
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  A Starknet Foundation program • Alpha version - Help us improve with your feedback!
+                </p>
               </div>
             </div>
             <div className="hidden md:block text-xs text-muted-foreground/70 border-l pl-4 ml-2">

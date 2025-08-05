@@ -92,7 +92,7 @@ export default function SuggestedQuestions({
 
   const getIconForQuestion = (index: number) => {
     const icons = [Target, Users, MessageSquare, DollarSign, TrendingUp, Lightbulb]
-    const IconComponent = icons[index % icons.length]
+    const IconComponent = icons[index % icons.length] as React.ComponentType<{ className?: string }>
     return <IconComponent className="h-3 w-3" />
   }
 

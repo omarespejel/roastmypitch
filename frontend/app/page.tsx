@@ -15,7 +15,8 @@ import SuggestedQuestions from '@/components/suggested-questions'
 import { Card } from '@/app/components/ui/card'
 import { useToast } from '@/app/hooks/use-toast'
 import { Button } from '@/app/components/ui/button'
-import { Github } from 'lucide-react'
+import { Badge } from '@/app/components/ui/badge'
+import { Github, AlertTriangle, MessageCircle } from 'lucide-react'
 import MagicLinkAuth from '@/components/magic-link-auth'
 
 
@@ -450,6 +451,23 @@ What would you like to focus on today?`
   return (
     <div className="flex flex-col min-h-screen">
       <Header onResetConversation={resetConversation} />
+      
+      {/* Alpha Version Banner */}
+      <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-b border-orange-200 dark:from-orange-950/20 dark:to-yellow-950/20 dark:border-orange-800">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-center gap-3 text-sm">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <span className="text-orange-800 dark:text-orange-200">
+              <span className="font-semibold">Alpha Version:</span> This bot is actively being improved. 
+              Your feedback helps us build better features!
+            </span>
+            <div className="flex items-center gap-1 text-orange-600">
+              <MessageCircle className="h-3 w-3" />
+              <span className="text-xs">Share feedback with @espejelomar</span>
+            </div>
+          </div>
+        </div>
+      </div>
       
       {showOnboarding && messages.length === 0 && (
         <OnboardingGuide onClose={() => setShowOnboarding(false)} />
