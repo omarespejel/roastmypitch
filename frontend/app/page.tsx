@@ -430,7 +430,8 @@ What would you like to focus on today?`
           const analysisMessage = formatAnalysisMessage(currentAnalysis, selectedAgent)
           setMessages(prev => [...prev, { 
             role: 'assistant', 
-            content: analysisMessage
+            content: analysisMessage,
+            agent: selectedAgent
           }])
         }
         
