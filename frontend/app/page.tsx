@@ -353,7 +353,7 @@ What would you like to focus on today?`
         content: data.reply
       })
 
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply, agent: selectedAgent }])
       
 
       
