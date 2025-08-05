@@ -118,8 +118,8 @@ export default function ChatInterface({ messages, isLoading, selectedAgent = 'Sh
                       </span>
                     </div>
                     {messageAgent !== selectedAgent && (
-                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md">
-                        Previous chat
+                      <span className="text-xs px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-md">
+                        {messageAgent === 'Product Manager' ? 'PM' : 'VC'} answered
                       </span>
                     )}
                   </div>

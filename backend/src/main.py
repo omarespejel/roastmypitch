@@ -427,11 +427,23 @@ async def upload_document(
         documents = reader.load_data()
         index.insert_nodes(documents)
 
-        # 🔄 Reset chat engines for this user to transition from SimpleChatEngine to ContextChatEngine
-        keys_to_reset = [key for key in chat_engines.keys() if key.startswith(f"{founder_id}_")]
-        for key in keys_to_reset:
-            logger.info(f"🔄 Resetting chat engine {key} due to first document upload")
-            del chat_engines[key]
+        # 🔄 Upgrade existing chat engines to ContextChatEngine while preserving memory
+        keys_to_upgrade = [key for key in chat_engines.keys() if key.startswith(f"{founder_id}_")]
+        
+        # Store preserved memories on the function object for later retrieval
+        if not hasattr(handle_chat, '_preserved_memories'):
+            handle_chat._preserved_memories = {}
+        
+        for key in keys_to_upgrade:
+            # Preserve the existing memory before deleting the engine
+            if key in chat_engines:
+                old_engine = chat_engines[key]
+                if hasattr(old_engine, 'memory'):
+                    handle_chat._preserved_memories[key] = old_engine.memory
+                    logger.info(f"🧠 Preserved memory for session {key}")
+                
+                logger.info(f"🔄 Upgrading chat engine {key} due to document upload")
+                del chat_engines[key]
 
         # 🔥 Automatically analyze the newly uploaded document for both agent types!
         analysis = None
@@ -528,7 +540,17 @@ async def handle_chat(request: ChatRequest, req: Request = None):
             test_results = retriever.retrieve("test query")
             has_documents = len(test_results) > 0
             
-            memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
+            # Check if we have preserved memory from a previous engine upgrade
+            preserved_memory = getattr(handle_chat, '_preserved_memories', {}).get(session_key)
+            if preserved_memory:
+                memory = preserved_memory
+                logger.info(f"🧠 Using preserved memory for session: {session_key}")
+                # Clear the preserved memory after using it
+                del handle_chat._preserved_memories[session_key]
+            else:
+                memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
+                logger.info(f"🧠 Creating new memory for session: {session_key}")
+                
             llm = get_llm_for_agent(agent_type)
             prompt = get_prompt(agent_type)
             
@@ -539,10 +561,28 @@ async def handle_chat(request: ChatRequest, req: Request = None):
             if has_documents:
                 # User has uploaded documents - use context chat engine
                 logger.info(f"📚 Creating ContextChatEngine with document retrieval")
+                
+                # Enhanced prompt that makes the AI aware of uploaded documents
+                enhanced_prompt = f"""{prompt}
+
+IMPORTANT: The user has uploaded documents that you can access and analyze. You have full access to:
+- Uploaded pitch decks, PRDs, or business documents
+- Document content for detailed analysis and feedback
+- Ability to reference specific sections, data, and insights from their materials
+
+When users ask about their uploaded content:
+1. Use the retrieved context to provide specific, detailed analysis
+2. Reference exact information from their documents
+3. Point out strengths, weaknesses, and gaps you identify
+4. Provide actionable recommendations based on their specific content
+5. Ask follow-up questions about unclear sections in their documents
+
+You can analyze their pitch, strategy, market analysis, financial projections, or any other content they've shared."""
+
                 chat_engines[session_key] = ContextChatEngine.from_defaults(
                     retriever=retriever,
                     memory=memory,
-                    system_prompt=prompt,
+                    system_prompt=enhanced_prompt,
                     llm=llm,
                 )
             else:
