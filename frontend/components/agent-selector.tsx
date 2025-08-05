@@ -39,7 +39,7 @@ export default function AgentSelector({ selectedAgent, onSelect }: AgentSelector
       <h2 className="text-center text-sm font-medium text-muted-foreground mb-6">
         Choose your advisor personality
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
         {AGENTS.map((agent) => {
           const Icon = agent.icon
           const isSelected = selectedAgent === agent.name
@@ -50,7 +50,7 @@ export default function AgentSelector({ selectedAgent, onSelect }: AgentSelector
               onClick={() => agent.available && onSelect(agent.name)}
               variant="outline"
               className={cn(
-                "relative h-auto p-6 flex flex-col items-center gap-4 transition-all duration-300 group card-hover",
+                "relative h-auto p-4 flex flex-col items-center gap-3 transition-all duration-300 group card-hover",
                 isSelected && "border-primary shadow-xl shadow-primary/20 scale-[1.02]",
                 !agent.available && "opacity-50 cursor-not-allowed"
               )}
@@ -67,20 +67,20 @@ export default function AgentSelector({ selectedAgent, onSelect }: AgentSelector
               )}
               
               <div className={cn(
-                "p-4 rounded-xl transition-all duration-300",
+                "p-3 rounded-lg transition-all duration-300",
                 isSelected 
                   ? `bg-gradient-to-br ${agent.gradient} shadow-lg` 
                   : "bg-secondary group-hover:bg-secondary/70"
               )}>
                 <Icon className={cn(
-                  "h-8 w-8 transition-transform duration-300 group-hover:scale-110",
+                  "h-6 w-6 transition-transform duration-300 group-hover:scale-110",
                   isSelected ? "text-white" : "text-muted-foreground"
                 )} />
               </div>
               
               <div className="text-center z-10">
-                <h3 className="font-semibold text-lg">{agent.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h3 className="font-semibold text-base">{agent.name}</h3>
+                <p className="text-xs text-muted-foreground mt-1">
                   {agent.available ? agent.description : "Coming soon"}
                 </p>
                 {agent.subtitle && (
@@ -88,7 +88,7 @@ export default function AgentSelector({ selectedAgent, onSelect }: AgentSelector
                     {agent.subtitle}
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground/70 mt-2 italic">
+                <p className="text-xs text-muted-foreground/70 mt-1 italic">
                   {agent.basedOn}
                 </p>
               </div>

@@ -104,9 +104,6 @@ export default function SuggestedQuestions({
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           {getIcon()}
           {selectedAgent === 'Product Manager' ? 'Product Questions' : 'VC Questions'}
-          <span className="text-xs text-muted-foreground font-normal">
-            {selectedAgent === 'Product Manager' ? 'Lenny Rachitsky Style' : 'Shark Tank Style'}
-          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
