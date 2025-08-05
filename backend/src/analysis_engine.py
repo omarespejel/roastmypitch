@@ -1,5 +1,12 @@
-from typing import Dict, List, Optional
+import base64
+import io
+import json
+import os
+from typing import Dict, List, Optional, Tuple
 
+import pdf2image
+from PIL import Image
+from llama_index.llms.openai_like import OpenAILike
 from pydantic import BaseModel
 
 from .prompts import AgentType
@@ -12,8 +19,18 @@ class AnalysisResult(BaseModel):
     next_steps: List[str]
 
 
-class PitchDeckAnalyzer:
+class EnhancedPitchDeckAnalyzer:
     def __init__(self):
+        # Vision-capable model via OpenRouter
+        self.vision_llm = OpenAILike(
+            api_base="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            model="anthropic/claude-3-5-sonnet-20241022",  # Supports vision
+            is_chat_model=True,
+            context_window=200000,
+            max_tokens=1000,
+            temperature=0.3,
+        )
         self.vc_rubric = {
             "team": {
                 "keywords": [
