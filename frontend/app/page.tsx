@@ -89,6 +89,11 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<{
+    stage: 'idle' | 'uploading' | 'processing' | 'complete' | 'error'
+    message: string
+    filename?: string
+  }>({ stage: 'idle', message: '' })
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [hasUploadedDocument, setHasUploadedDocument] = useState(false)
   const [isConnected, setIsConnected] = useState(true)
@@ -370,14 +375,12 @@ What would you like to focus on today?`
     const formData = new FormData()
     formData.append('file', file)
     
-    // Set uploading state and show immediate feedback
+    // Set uploading state and persistent feedback
     setIsUploading(true)
-    
-    // Show immediate upload started feedback
-    toast({
-      title: "📄 Uploading Document...",
-      description: `Processing ${file.name} - this may take a moment`,
-      variant: "default",
+    setUploadStatus({
+      stage: 'uploading',
+      message: `Uploading ${file.name}...`,
+      filename: file.name
     })
     
     try {
@@ -388,11 +391,11 @@ What would you like to focus on today?`
       
       if (!response.ok) throw new Error('Upload failed')
       
-      // Show processing feedback while waiting for response
-      toast({
-        title: "🔄 Analyzing Document...",
-        description: "Our AI is reviewing your document and generating insights",
-        variant: "default",
+      // Update to processing stage
+      setUploadStatus({
+        stage: 'processing',
+        message: `Analyzing ${file.name} with AI...`,
+        filename: file.name
       })
       
       const data = await response.json() as { 
@@ -403,21 +406,22 @@ What would you like to focus on today?`
         }
       }
       
-      // Optional: Set flag that document has been uploaded
+      // Set flag that document has been uploaded
       setHasUploadedDocument(true)
       
-      // Show enhanced analysis toast
+      // Show completion feedback
       if (data.analysis) {
+        // Show confetti celebration
         confetti({
           particleCount: 100,
           spread: 70,
           origin: { y: 0.6 }
         })
         
-        toast({
-          title: "🎉 Document Analyzed!",
-          description: "Enhanced analysis available! Check the suggestions panel.",
-          variant: "success" as any,
+        setUploadStatus({
+          stage: 'complete',
+          message: `${data.filename} analyzed successfully! 🎉`,
+          filename: data.filename
         })
         
         // Auto-display analysis results for current agent
@@ -429,20 +433,50 @@ What would you like to focus on today?`
             content: analysisMessage
           }])
         }
-      } else {
+        
+        // Show success toast
         toast({
-          title: "✅ Document Uploaded Successfully",
-          description: `${data.filename} is ready! I can now provide more detailed analysis.`,
+          title: "🎉 Document Analyzed!",
+          description: "Enhanced analysis available! You can now continue chatting.",
+          variant: "success" as any,
+        })
+      } else {
+        setUploadStatus({
+          stage: 'complete',
+          message: `${data.filename} uploaded successfully! ✅`,
+          filename: data.filename
+        })
+        
+        toast({
+          title: "✅ Document Uploaded",
+          description: "You can now continue chatting with enhanced context.",
           variant: "success" as any,
         })
       }
+      
+      // Clear upload status after 3 seconds
+      setTimeout(() => {
+        setUploadStatus({ stage: 'idle', message: '' })
+      }, 3000)
+      
     } catch (error) {
       console.error('Error uploading file:', error)
+      setUploadStatus({
+        stage: 'error',
+        message: `Failed to upload ${file.name}. Please try again.`,
+        filename: file.name
+      })
+      
       toast({
         title: "❌ Upload Failed",
         description: "Failed to upload document. Please try again.",
         variant: "destructive",
       })
+      
+      // Clear error status after 5 seconds
+      setTimeout(() => {
+        setUploadStatus({ stage: 'idle', message: '' })
+      }, 5000)
     } finally {
       // Always reset uploading state
       setIsUploading(false)
@@ -504,6 +538,44 @@ What would you like to focus on today?`
           </div>
         )}
 
+        {/* Upload Status - Persistent feedback during upload */}
+        {uploadStatus.stage !== 'idle' && (
+          <div className={`mx-4 mb-4 px-4 py-3 rounded-lg border ${
+            uploadStatus.stage === 'error' 
+              ? 'bg-red-50 border-red-200 text-red-800'
+              : uploadStatus.stage === 'complete'
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-blue-50 border-blue-200 text-blue-800'
+          }`}>
+            <div className="flex items-center gap-3">
+              {uploadStatus.stage === 'uploading' && (
+                <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" />
+              )}
+              {uploadStatus.stage === 'processing' && (
+                <div className="animate-pulse h-5 w-5 bg-blue-600 rounded-full" />
+              )}
+              {uploadStatus.stage === 'complete' && (
+                <div className="h-5 w-5 bg-green-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+              )}
+              {uploadStatus.stage === 'error' && (
+                <div className="h-5 w-5 bg-red-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs">✗</span>
+                </div>
+              )}
+              <div className="flex-1">
+                <div className="font-medium text-sm">{uploadStatus.message}</div>
+                {(uploadStatus.stage === 'uploading' || uploadStatus.stage === 'processing') && (
+                  <div className="text-xs opacity-75 mt-1">
+                    Please wait while we process your document...
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
 
 
         <AgentSelector 
@@ -523,7 +595,7 @@ What would you like to focus on today?`
           <Card className="flex-1 flex flex-col overflow-hidden">
             <ChatInterface 
               messages={messages} 
-              isLoading={isLoading}
+              isLoading={isLoading || uploadStatus.stage === 'processing'}
               selectedAgent={selectedAgent}
               onSendMessage={sendMessage}
             />
@@ -537,10 +609,11 @@ What would you like to focus on today?`
       
       <MessageInput
         onSendMessage={sendMessage}
-                  onUploadFile={uploadFile}
-          isLoading={isLoading || isUploading}
-          selectedAgent={selectedAgent}
-        />
+        onUploadFile={uploadFile}
+        isLoading={isLoading || isUploading || uploadStatus.stage === 'processing'}
+        selectedAgent={selectedAgent}
+        isUploadDisabled={uploadStatus.stage === 'uploading' || uploadStatus.stage === 'processing'}
+      />
         
         {/* Suggested Questions Panel */}
         {user && (

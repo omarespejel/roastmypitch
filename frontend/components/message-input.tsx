@@ -11,22 +11,23 @@ interface MessageInputProps {
   onUploadFile: (file: File) => void
   isLoading: boolean
   selectedAgent: string
+  isUploadDisabled?: boolean
 }
 
-export default function MessageInput({ onSendMessage, onUploadFile, isLoading, selectedAgent }: MessageInputProps) {
+export default function MessageInput({ onSendMessage, onUploadFile, isLoading, selectedAgent, isUploadDisabled = false }: MessageInputProps) {
   const [message, setMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim() || isLoading) return
+    if (!message.trim() || isLoading || isUploadDisabled) return
     onSendMessage(message)
     setMessage('')
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file && file.type === 'application/pdf') {
+    if (file && file.type === 'application/pdf' && !isUploadDisabled) {
       onUploadFile(file)
     }
   }
@@ -56,9 +57,9 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={getPlaceholder()}
+            placeholder={isUploadDisabled ? "Please wait while document is being processed..." : getPlaceholder()}
             className="min-h-[80px] pr-24 resize-none"
-            disabled={isLoading}
+            disabled={isLoading || isUploadDisabled}
           />
           <div className="absolute bottom-2 right-2 flex gap-2">
             <Button
@@ -66,8 +67,12 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
               size="icon"
               variant="ghost"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading}
-              className="h-8 w-8"
+              disabled={isLoading || isUploadDisabled}
+              className={cn(
+                "h-8 w-8",
+                isUploadDisabled && "opacity-50 cursor-not-allowed"
+              )}
+              title={isUploadDisabled ? "Please wait while document is being processed" : "Upload PDF document"}
             >
               <Paperclip className="h-4 w-4" />
             </Button>
@@ -75,10 +80,10 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
               type="submit"
               size="icon"
               variant={message.trim() ? "gradient" : "ghost"}
-              disabled={isLoading || !message.trim()}
+              disabled={isLoading || !message.trim() || isUploadDisabled}
               className={cn(
                 "h-8 w-8",
-                message.trim() && "hover:scale-110"
+                message.trim() && !isUploadDisabled && "hover:scale-110"
               )}
             >
               <Send className="h-4 w-4" />
@@ -92,7 +97,7 @@ export default function MessageInput({ onSendMessage, onUploadFile, isLoading, s
           </div>
           <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-2 space-y-1">
             <p className="text-blue-700 dark:text-blue-300 font-medium">
-              📄 Pitch Deck Tips (Vision Analysis):
+              📄 Pitch Deck Tips:
             </p>
             <p className="text-blue-600 dark:text-blue-400">
               • Compress your PDF first at{' '}
