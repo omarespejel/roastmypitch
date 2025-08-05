@@ -227,3 +227,275 @@ class EnhancedPitchDeckAnalyzer:
                     break
 
         return next_steps
+
+    async def analyze_pitch_deck_comprehensive(
+        self, 
+        file_path: str, 
+        agent_type: AgentType
+    ) -> Dict:
+        """Enhanced analysis combining text extraction + visual interpretation"""
+        
+        try:
+            # Stage 1: Extract structured text (existing approach)
+            text_content = self._extract_text_content(file_path)
+            text_analysis = self.analyze_document_gaps(text_content, agent_type)
+            
+            # Stage 2: Visual analysis of each page
+            visual_insights = await self._analyze_visual_content(file_path, agent_type)
+            
+            # Stage 3: Combine and synthesize insights
+            comprehensive_analysis = self._synthesize_analysis(
+                text_analysis, visual_insights, agent_type
+            )
+            
+            return comprehensive_analysis
+            
+        except Exception as e:
+            print(f"Comprehensive analysis failed: {e}")
+            # Fallback to text-only analysis
+            text_content = self._extract_text_content(file_path)
+            return self.analyze_document_gaps(text_content, agent_type)
+
+    def _extract_text_content(self, file_path: str) -> str:
+        """Extract text content from PDF using existing pypdf approach"""
+        import pypdf
+        
+        try:
+            with open(file_path, 'rb') as file:
+                pdf_reader = pypdf.PdfReader(file)
+                text = ""
+                for page in pdf_reader.pages:
+                    text += page.extract_text() + "\n"
+                return text
+        except Exception as e:
+            print(f"Text extraction failed: {e}")
+            return ""
+
+    async def _analyze_visual_content(
+        self, 
+        file_path: str, 
+        agent_type: AgentType
+    ) -> Dict:
+        """Analyze visual elements using OpenRouter vision models"""
+        
+        try:
+            # Convert PDF pages to images (limit to first 8 pages for cost control)
+            images = pdf2image.convert_from_path(file_path, dpi=150, first_page=1, last_page=8)
+            
+            visual_insights = {
+                "charts_and_metrics": [],
+                "visual_storytelling": [],
+                "missing_visual_elements": [],
+                "page_analysis": [],
+                "key_visual_insights": []
+            }
+            
+            for i, image in enumerate(images):
+                # Convert PIL image to base64
+                base64_image = self._image_to_base64(image)
+                
+                # Analyze each page visually
+                page_analysis = await self._analyze_page_visual(
+                    base64_image, i+1, agent_type
+                )
+                
+                if page_analysis and not page_analysis.get("error"):
+                    visual_insights["page_analysis"].append(page_analysis)
+                    
+                    # Extract specific visual elements
+                    if page_analysis.get("has_charts"):
+                        visual_insights["charts_and_metrics"].extend(
+                            page_analysis.get("chart_insights", [])
+                        )
+                    
+                    visual_insights["key_visual_insights"].extend(
+                        page_analysis.get("key_findings", [])
+                    )
+            
+            return visual_insights
+            
+        except Exception as e:
+            print(f"Visual analysis failed: {e}")
+            return {"error": str(e), "page_analysis": []}
+
+    def _image_to_base64(self, image: Image.Image) -> str:
+        """Convert PIL image to base64 string"""
+        # Resize image to reduce token usage while maintaining readability
+        max_size = (1024, 1024)
+        image.thumbnail(max_size, Image.Resampling.LANCZOS)
+        
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG", optimize=True)
+        image_bytes = buffer.getvalue()
+        return base64.b64encode(image_bytes).decode()
+
+    async def _analyze_page_visual(
+        self, 
+        base64_image: str, 
+        page_num: int, 
+        agent_type: AgentType
+    ) -> Dict:
+        """Analyze a single page using vision model"""
+        
+        # Craft prompt based on agent type (using Zinsser + beginner founder style)
+        if agent_type == AgentType.SHARK_VC:
+            prompt = f"""Analyze pitch deck page #{page_num} from a beginner founder perspective getting VC feedback.
+
+LOOK FOR & EXTRACT:
+1. **Numbers that matter**: Revenue, users, growth rates, market size
+2. **Charts/graphs**: What story do they tell? Are trends going up?
+3. **Team info**: Founder backgrounds, relevant experience
+4. **Traction evidence**: Customer logos, growth curves, partnerships
+5. **Visual problems**: Hard to read, confusing, missing key info
+
+FOCUS ON BEGINNER FOUNDERS:
+- What would confuse a first-time founder?
+- What key investor info is missing?
+- How can this slide be clearer?
+
+Be specific. Not "needs improvement" but "add your MRR growth rate" or "show team backgrounds."
+
+Extract key insights in simple bullet points."""
+
+        else:  # Product Manager
+            prompt = f"""Analyze pitch deck page #{page_num} from a product perspective for beginner founders.
+
+LOOK FOR & EXTRACT:
+1. **User insights**: Who uses this? What problem does it solve?
+2. **Product features**: What does it do? How does it work?
+3. **Market research**: Customer validation, user feedback
+4. **Product metrics**: Usage, retention, feature adoption
+5. **User journey**: How do people discover and use this?
+
+FOCUS ON BEGINNER FOUNDERS:
+- Is the user problem clear?
+- Does the solution make sense?
+- What product questions are unanswered?
+
+Use Lenny Rachitsky frameworks when relevant. Give concrete next steps.
+
+Extract key insights in simple bullet points."""
+
+        try:
+            # Create message for vision model
+            messages = [
+                {
+                    "role": "user", 
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url", 
+                            "image_url": {
+                                "url": f"data:image/png;base64,{base64_image}"
+                            }
+                        }
+                    ]
+                }
+            ]
+            
+            # Get response from vision model
+            response = await self.vision_llm.achat(messages)
+            response_text = str(response)
+            
+            # Parse response
+            return self._parse_visual_response(response_text, page_num)
+            
+        except Exception as e:
+            print(f"Visual analysis failed for page {page_num}: {e}")
+            return {"page": page_num, "error": str(e)}
+
+    def _parse_visual_response(self, response: str, page_num: int) -> Dict:
+        """Parse and structure the vision model response"""
+        
+        # Structure the text response
+        key_findings = []
+        chart_insights = []
+        missing_elements = []
+        
+        lines = [line.strip() for line in response.split('\n') if line.strip()]
+        
+        for line in lines:
+            if any(term in line.lower() for term in ["revenue", "users", "growth", "$", "%", "mrr", "arr", "metric"]):
+                chart_insights.append(line)
+            elif any(term in line.lower() for term in ["missing", "need", "add", "unclear", "confusing"]):
+                missing_elements.append(line)
+            elif line and not line.startswith('#') and len(line) > 10:
+                key_findings.append(line)
+        
+        return {
+            "page": page_num,
+            "raw_response": response,
+            "has_charts": any(term in response.lower() for term in ["chart", "graph", "metric", "data", "trend"]),
+            "has_metrics": any(term in response.lower() for term in ["revenue", "users", "growth", "$", "%", "mrr", "arr"]),
+            "key_findings": key_findings[:3],  # Top 3 insights
+            "chart_insights": chart_insights[:2],  # Top 2 chart insights
+            "missing_elements": missing_elements[:2]  # Top 2 missing elements
+        }
+
+    def _synthesize_analysis(
+        self, 
+        text_analysis: Dict, 
+        visual_insights: Dict, 
+        agent_type: AgentType
+    ) -> Dict:
+        """Combine text and visual analysis into comprehensive insights"""
+        
+        # Extract key insights from visual analysis
+        visual_metrics = []
+        visual_missing = []
+        
+        for page in visual_insights.get("page_analysis", []):
+            if page.get("has_metrics"):
+                visual_metrics.extend(page.get("chart_insights", []))
+            visual_missing.extend(page.get("missing_elements", []))
+        
+        # Enhanced action items
+        enhanced_actions = self._generate_enhanced_action_items(
+            text_analysis, visual_insights, agent_type
+        )
+        
+        return {
+            "missing_sections": text_analysis.get("missing_sections", []),
+            "suggested_actions": text_analysis.get("suggested_actions", []),
+            "help_tooltips": text_analysis.get("help_tooltips", {}),
+            "next_steps": enhanced_actions,
+            "visual_insights": {
+                "metrics_found": visual_metrics,
+                "elements_missing": visual_missing,
+                "total_pages_analyzed": len(visual_insights.get("page_analysis", [])),
+                "pages_with_charts": len([p for p in visual_insights.get("page_analysis", []) if p.get("has_charts")])
+            }
+        }
+
+    def _generate_enhanced_action_items(
+        self, 
+        text_analysis: Dict, 
+        visual_insights: Dict, 
+        agent_type: AgentType
+    ) -> List[str]:
+        """Generate concrete action items based on both text and visual analysis"""
+        
+        actions = []
+        
+        # Add original text-based actions
+        actions.extend(text_analysis.get("next_steps", [])[:3])
+        
+        # Add visual-based actions
+        chart_pages = [p for p in visual_insights.get("page_analysis", []) if p.get("has_charts")]
+        if len(chart_pages) < 2:
+            if agent_type == AgentType.SHARK_VC:
+                actions.append("Add charts showing revenue growth, user acquisition, or market traction")
+            else:
+                actions.append("Include visuals showing user research data, product metrics, or customer feedback")
+        
+        metric_pages = [p for p in visual_insights.get("page_analysis", []) if p.get("has_metrics")]
+        if len(metric_pages) < 1:
+            actions.append("Include specific numbers - show your key metrics with actual data")
+        
+        # Agent-specific recommendations
+        if agent_type == AgentType.SHARK_VC:
+            actions.append("Make each slide answer: 'How does this prove market opportunity?'")
+        else:
+            actions.append("Show the user journey - how do people discover, try, and love your product?")
+        
+        return actions[:6]  # Limit to 6 most important actions

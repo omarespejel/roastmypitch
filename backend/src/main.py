@@ -437,13 +437,24 @@ async def upload_document(
         try:
             document_text = " ".join(doc.text for doc in documents)
             
-            # Run analysis for both agent types
-            analysis_pm = analyzer.analyze_document_gaps(
-                document_text, AgentType("Product Manager")
-            )
-            analysis_vc = analyzer.analyze_document_gaps(
-                document_text, AgentType("Shark VC")
-            )
+            # Run enhanced analysis with vision capabilities
+            try:
+                analysis_pm = await analyzer.analyze_pitch_deck_comprehensive(
+                    file_path, AgentType.PRODUCT_PM
+                )
+                logger.info("✅ Comprehensive PM analysis completed")
+            except Exception as e:
+                logger.warning(f"⚠️ Comprehensive PM analysis failed, using text-only: {e}")
+                analysis_pm = analyzer.analyze_document_gaps(document_text, AgentType.PRODUCT_PM)
+            
+            try:
+                analysis_vc = await analyzer.analyze_pitch_deck_comprehensive(
+                    file_path, AgentType.SHARK_VC
+                )
+                logger.info("✅ Comprehensive VC analysis completed")
+            except Exception as e:
+                logger.warning(f"⚠️ Comprehensive VC analysis failed, using text-only: {e}")
+                analysis_vc = analyzer.analyze_document_gaps(document_text, AgentType.SHARK_VC)
             
             analysis = {
                 "Product Manager": analysis_pm.dict() if hasattr(analysis_pm, 'dict') else analysis_pm,
