@@ -4,6 +4,7 @@ import shutil
 import time
 import logging
 import asyncio
+import threading
 from collections import defaultdict
 from typing import Dict, Optional, Any, List
 from logging.handlers import RotatingFileHandler
@@ -131,6 +132,57 @@ index = VectorStoreIndex.from_vector_store(
 
 # --- In-Memory Session Storage ---
 chat_engines = {}
+session_last_activity = {}  # Track last activity time for cleanup
+session_lock = threading.Lock()  # Thread safety for session management
+
+# Session cleanup configuration
+SESSION_TIMEOUT_MINUTES = 30  # Clean up sessions inactive for 30 minutes
+
+
+def cleanup_inactive_sessions():
+    """Clean up chat engines that have been inactive for too long"""
+    current_time = time.time()
+    timeout_seconds = SESSION_TIMEOUT_MINUTES * 60
+    
+    with session_lock:
+        # Find sessions to remove
+        sessions_to_remove = []
+        for session_key, last_activity in session_last_activity.items():
+            if current_time - last_activity > timeout_seconds:
+                sessions_to_remove.append(session_key)
+        
+        # Remove inactive sessions
+        for session_key in sessions_to_remove:
+            if session_key in chat_engines:
+                del chat_engines[session_key]
+                logger.info(f"🧹 Cleaned up inactive session: {session_key}")
+            if session_key in session_last_activity:
+                del session_last_activity[session_key]
+        
+        if sessions_to_remove:
+            logger.info(f"🧹 Cleaned up {len(sessions_to_remove)} inactive sessions")
+
+
+def update_session_activity(session_key: str):
+    """Update the last activity time for a session"""
+    with session_lock:
+        session_last_activity[session_key] = time.time()
+
+
+# Start background cleanup thread
+def start_cleanup_thread():
+    """Start a background thread to periodically clean up inactive sessions"""
+    def cleanup_worker():
+        while True:
+            time.sleep(300)  # Run cleanup every 5 minutes
+            try:
+                cleanup_inactive_sessions()
+            except Exception as e:
+                logger.error(f"Error in session cleanup: {e}")
+    
+    cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
+    cleanup_thread.start()
+    logger.info("🧹 Started session cleanup background thread")
 
 # --- Analysis and Research Services ---
 analyzer = PitchDeckAnalyzer()
@@ -139,6 +191,7 @@ question_engine = AdaptiveQuestionEngine()
 # --- Rate Limiting ---
 request_counts = defaultdict(list)
 expensive_request_counts = defaultdict(list)
+rate_limit_lock = threading.Lock()  # Thread safety for rate limiting
 
 # General API rate limits
 RATE_LIMIT_REQUESTS = 60  # requests per minute for general endpoints
@@ -153,42 +206,43 @@ def check_rate_limit(client_ip: str, is_expensive: bool = False):
     """Rate limiting based on client IP and operation type"""
     now = time.time()
 
-    if is_expensive:
-        # Clean old expensive requests
-        expensive_request_counts[client_ip] = [
+    with rate_limit_lock:  # Add thread safety
+        if is_expensive:
+            # Clean old expensive requests
+            expensive_request_counts[client_ip] = [
+                req_time
+                for req_time in expensive_request_counts[client_ip]
+                if now - req_time < EXPENSIVE_RATE_WINDOW
+            ]
+
+            # Check expensive operation rate limit
+            if len(expensive_request_counts[client_ip]) >= EXPENSIVE_RATE_LIMIT:
+                wait_time = EXPENSIVE_RATE_WINDOW - (now - min(expensive_request_counts[client_ip]))
+                logger.warning(f"Rate limit exceeded for {client_ip}: {len(expensive_request_counts[client_ip])}/{EXPENSIVE_RATE_LIMIT} requests")
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Too many AI requests. Please wait {int(wait_time)} seconds before trying again. Current: {len(expensive_request_counts[client_ip])}/{EXPENSIVE_RATE_LIMIT} requests per minute.",
+                    headers={"Retry-After": str(int(wait_time))}
+                )
+
+            # Add current expensive request
+            expensive_request_counts[client_ip].append(now)
+
+        # Always check general rate limit
+        request_counts[client_ip] = [
             req_time
-            for req_time in expensive_request_counts[client_ip]
-            if now - req_time < EXPENSIVE_RATE_WINDOW
+            for req_time in request_counts[client_ip]
+            if now - req_time < RATE_LIMIT_WINDOW
         ]
 
-        # Check expensive operation rate limit
-        if len(expensive_request_counts[client_ip]) >= EXPENSIVE_RATE_LIMIT:
-            wait_time = EXPENSIVE_RATE_WINDOW - (now - min(expensive_request_counts[client_ip]))
-            logger.warning(f"Rate limit exceeded for {client_ip}: {len(expensive_request_counts[client_ip])}/{EXPENSIVE_RATE_LIMIT} requests")
+        if len(request_counts[client_ip]) >= RATE_LIMIT_REQUESTS:
             raise HTTPException(
                 status_code=429,
-                detail=f"Too many AI requests. Please wait {int(wait_time)} seconds before trying again. Current: {len(expensive_request_counts[client_ip])}/{EXPENSIVE_RATE_LIMIT} requests per minute.",
-                headers={"Retry-After": str(int(wait_time))}
+                detail=f"Rate limit exceeded. Please try again later. Limit: {RATE_LIMIT_REQUESTS} requests per minute.",
             )
 
-        # Add current expensive request
-        expensive_request_counts[client_ip].append(now)
-
-    # Always check general rate limit
-    request_counts[client_ip] = [
-        req_time
-        for req_time in request_counts[client_ip]
-        if now - req_time < RATE_LIMIT_WINDOW
-    ]
-
-    if len(request_counts[client_ip]) >= RATE_LIMIT_REQUESTS:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit exceeded. Please try again later. Limit: {RATE_LIMIT_REQUESTS} requests per minute.",
-        )
-
-    # Add current request
-    request_counts[client_ip].append(now)
+        # Add current request
+        request_counts[client_ip].append(now)
 
 
 # --- Application Setup ---
@@ -249,7 +303,7 @@ app.add_middleware(
     expose_headers=["*"]
 )
 
-# Add startup event to verify configuration
+# Add startup event to verify configuration and start cleanup
 @app.on_event("startup")
 async def verify_config():
     api_key = os.getenv("OPENROUTER_API_KEY")
@@ -258,7 +312,12 @@ async def verify_config():
         raise RuntimeError("OpenRouter API key not configured")
     else:
         logger.info(f"✅ OpenRouter API key configured (length: {len(api_key)})")
-        # Test the API key
+    
+    # Start session cleanup thread
+    start_cleanup_thread()
+    
+    # Test the API key if configured
+    if api_key:
         try:
             import requests
             response = requests.get(
@@ -512,7 +571,16 @@ async def handle_chat(request: ChatRequest, req: Request = None):
         check_rate_limit(client_ip, is_expensive=True)
 
     founder_id = request.founder_id
-    agent_type = AgentType(request.agent_type)
+    
+    # Validate agent type with proper error handling
+    try:
+        agent_type = AgentType(request.agent_type)
+    except ValueError:
+        logger.warning(f"❌ Invalid agent type received: {request.agent_type}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid agent type: {request.agent_type}. Valid types: {[e.value for e in AgentType]}"
+        )
     
     # Add input validation logging
     logger.info(f"📨 Chat request received - Founder: {founder_id}, Agent: {agent_type}")
@@ -585,6 +653,8 @@ You can analyze their pitch, strategy, market analysis, financial projections, o
                     system_prompt=enhanced_prompt,
                     llm=llm,
                 )
+                # Track session activity
+                update_session_activity(session_key)
             else:
                 # New user without documents - use simple chat engine
                 logger.info(f"💬 Creating SimpleChatEngine for conversation without documents")
@@ -604,10 +674,14 @@ Be conversational, helpful, and engaging even without documents to analyze."""
                     system_prompt=enhanced_prompt,
                     llm=llm,
                 )
+                # Track session activity
+                update_session_activity(session_key)
             
             logger.info(f"✅ Chat engine created successfully for {session_key}")
 
         chat_engine = chat_engines[session_key]
+        # Update activity for existing session
+        update_session_activity(session_key)
         
         # Handle welcome back messages specially
         if request.is_welcome_back:
@@ -735,7 +809,17 @@ async def analyze_pitch_deck(
                 }
             )
 
-        analysis = analyzer.analyze_document_gaps(content, AgentType(agent_type))
+        # Validate agent type with proper error handling
+        try:
+            agent_enum = AgentType(agent_type)
+        except ValueError:
+            logger.warning(f"❌ Invalid agent type in analyze endpoint: {agent_type}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid agent type: {agent_type}. Valid types: {[e.value for e in AgentType]}"
+            )
+        
+        analysis = analyzer.analyze_document_gaps(content, agent_enum)
         return analysis
 
     except Exception as e:

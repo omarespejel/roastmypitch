@@ -318,7 +318,7 @@ What would you like to focus on today?`
 
 
   const sendMessage = async (message: string) => {
-    setMessages(prev => [...prev, { role: 'user', content: message, agent: selectedAgent }])
+    setMessages(prev => [...prev, { role: 'user', content: message }])
     setIsLoading(true)
     
     try {
