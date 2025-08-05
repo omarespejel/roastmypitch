@@ -30,7 +30,7 @@ from .prompts import AgentType, get_prompt
 
 # Helper function to clean citation numbers from AI responses
 def clean_citations(text: str) -> str:
-    """Remove citation numbers like [1], [2], [1][2][4] from AI responses."""
+    """Remove citation numbers like [1], [2], [1][2][4] from AI responses while preserving formatting."""
     if not text:
         return text
     
@@ -41,8 +41,9 @@ def clean_citations(text: str) -> str:
     # Also remove citations that appear mid-text
     cleaned = re.sub(r'\[\d+\]', '', cleaned)
     
-    # Clean up any double spaces that might result
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    # Clean up any double spaces that might result, but preserve line breaks
+    # Only replace multiple spaces (not line breaks) with single spaces
+    cleaned = re.sub(r'[^\S\r\n]+', ' ', cleaned).strip()
     
     return cleaned
 
